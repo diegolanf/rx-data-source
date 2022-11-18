@@ -1,0 +1,45 @@
+name: deploy
+'on':
+  push:
+    branches:
+      - main
+jobs:
+  angular-unit-test:
+    runs-on: ubuntu-latest
+    container: cypress/browsers:node18.12.0-chrome106-ff106
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: 18
+          cache: 'npm'
+      - run: HUSKY=0 npm ci
+      - run: npm run test:ci
+  cypress-test:
+    runs-on: ubuntu-latest
+    container: cypress/browsers:node18.12.0-chrome106-ff106
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: 18
+          cache: 'npm'
+      - run: HUSKY=0 npm ci
+      - run: npm run e2e:ci
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    needs: [ angular-unit-test, cypress-test ]
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: 16
+          cache: 'npm'
+      - run: HUSKY=0 npm ci
+      - run: npm run build:prod
+      - uses: FirebaseExtended/action-hosting-deploy@v0
+        with:
+          repoToken: '${{ secrets.GITHUB_TOKEN }}'
+          firebaseServiceAccount: '${{ secrets.FIREBASE_SERVICE_ACCOUNT_RX_DATA_SOURCE }}'
+          channelId: live
+          projectId: rx-data-source
