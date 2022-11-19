@@ -1,0 +1,55 @@
+<h2>Actions</h2>
+<mat-card>
+  <section class="flex flex-row items-center overflow-hidden p-2.5 gap-1">
+    <div class="grow font-light mr-2">Data source:</div>
+    <button mat-icon-button (click)="dataSource?.refresh()">
+      <mat-icon>refresh</mat-icon>
+    </button>
+    <button mat-icon-button (click)="dataSource?.refresh()">
+      <mat-icon>first_page</mat-icon>
+    </button>
+    <button mat-icon-button (click)="dataSource?.resetAndRefresh()">
+      <mat-icon>start</mat-icon>
+    </button>
+  </section>
+  <mat-divider></mat-divider>
+  <section class="flex flex-row items-center overflow-hidden p-2.5 gap-1">
+    <div class="grow font-light mr-2">Pagination strategy:</div>
+    <mat-button-toggle-group
+      #strategy="matButtonToggleGroup"
+      (change)="togglePaginationStrategy(strategy.value)">
+      <mat-button-toggle [value]="paginationStrategy.none">None</mat-button-toggle>
+      <mat-button-toggle [value]="paginationStrategy.paginate">Paginate</mat-button-toggle>
+      <mat-button-toggle [value]="paginationStrategy.scroll">Scroll</mat-button-toggle>
+    </mat-button-toggle-group>
+  </section>
+  <mat-divider></mat-divider>
+  <section class="flex flex-row items-center overflow-hidden p-2.5 gap-1">
+    <div class="grow font-light mr-2">Limit:</div>
+    <mat-button-toggle-group #limit="matButtonToggleGroup" (change)="toggleLimit(limit.value)">
+      <mat-button-toggle [value]="false">False</mat-button-toggle>
+      <mat-button-toggle [value]="true">True</mat-button-toggle>
+      <mat-button-toggle [value]="10">10</mat-button-toggle>
+      <mat-button-toggle [value]="20">20</mat-button-toggle>
+    </mat-button-toggle-group>
+  </section>
+  <mat-divider></mat-divider>
+  <section class="flex flex-row items-center justify-center overflow-hidden py-1 px-2.5 gap-1">
+    <button mat-icon-button (click)="tableDataSource?.reset()">
+      <mat-icon>refresh</mat-icon>
+    </button>
+    <button mat-icon-button (click)="tableDataSource?.scroll()">
+      <mat-icon>arrow_downward</mat-icon>
+    </button>
+    <button mat-icon-button (click)="tableDataSource?.previousPage()">
+      <mat-icon>arrow_back</mat-icon>
+    </button>
+    <button mat-icon-button (click)="tableDataSource?.nextPage()">
+      <mat-icon>arrow_forward</mat-icon>
+    </button>
+    <button mat-stroked-button class="shrink-0" (click)="tableDataSource?.jumpToPage(5)">5</button>
+    <button mat-stroked-button class="shrink-0" (click)="tableDataSource?.jumpToPage(10)">
+      10
+    </button>
+  </section>
+</mat-card>

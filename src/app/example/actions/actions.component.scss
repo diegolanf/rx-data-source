@@ -1,0 +1,10 @@
+:host {
+  .mat-button-toggle-group {
+    height: 28px;
+    align-items: center;
+
+    ::ng-deep .mat-button-toggle-label-content {
+      line-height: 28px;
+    }
+  }
+}

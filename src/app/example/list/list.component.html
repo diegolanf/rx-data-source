@@ -1,0 +1,7 @@
+<h2>List</h2>
+<mat-card>
+  <ng-container *rxFor="let item of tableDataSource?.rows$; last as isLast">
+    <div class="p-2.5">{{ item }}</div>
+    <mat-divider *ngIf="!isLast"></mat-divider>
+  </ng-container>
+</mat-card>

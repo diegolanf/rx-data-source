@@ -1,0 +1,58 @@
+<h2>Observables</h2>
+<div class="flex flex-col gap-4">
+  <div>
+    <div class="font-semilight pb-2">Data source</div>
+    <mat-card>
+      <div class="flex flex-row p-2.5">
+        <span class="grow font-light mr-2">Error:</span>{{ dataSource?.error$ | async }}
+      </div>
+      <mat-divider></mat-divider>
+      <div class="flex flex-row p-2.5">
+        <span class="grow font-light mr-2">Initial state:</span
+        >{{ dataSource?.initialState$ | async }}
+      </div>
+      <mat-divider></mat-divider>
+      <div class="flex flex-row p-2.5">
+        <span class="grow font-light mr-2">Loading:</span>
+        {{ dataSource?.loading$ | async }}
+      </div>
+      <mat-divider></mat-divider>
+      <div class="flex flex-row p-2.5">
+        <span class="grow font-light mr-2">First loading:</span>
+        {{ dataSource?.firstLoading$ | async }}
+      </div>
+      <mat-divider></mat-divider>
+      <div class="flex flex-row p-2.5">
+        <span class="grow font-light mr-2">After first loading:</span>
+        {{ dataSource?.afterFirstLoading$ | async }}
+      </div>
+    </mat-card>
+  </div>
+  <div>
+    <div class="font-semilight pb-2">Table</div>
+    <mat-card>
+      <div class="flex flex-row p-2.5">
+        <span class="grow font-light mr-2">Page:</span>
+        {{ tableDataSource?.page$ | async }}
+      </div>
+      <mat-divider></mat-divider>
+      <div class="flex flex-row p-2.5">
+        <span class="grow font-light mr-2">Limit:</span>
+        {{ tableDataSource?.limit$ | async }}
+      </div>
+      <mat-divider></mat-divider>
+      <div class="flex flex-row p-2.5">
+        <span class="grow font-light mr-2">Take:</span>{{ take$ | async }}
+      </div>
+      <mat-divider></mat-divider>
+      <div class="flex flex-row p-2.5">
+        <span class="grow font-light mr-2">Skip:</span>{{ skip$ | async }}
+      </div>
+      <mat-divider></mat-divider>
+      <div class="flex flex-row p-2.5">
+        <span class="grow font-light mr-2">Strategy:</span>
+        {{ tableDataSource?.paginationStrategy$ | async }}
+      </div>
+    </mat-card>
+  </div>
+</div>

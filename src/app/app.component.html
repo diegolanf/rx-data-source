@@ -1,0 +1,11 @@
+<div class="p-4 flex flex-col">
+  <ng-container *rxLet="appService.showExample$; let showExample">
+    <div class="flex flex-row">
+      <h1 class="grow">Data source with Rx-Angular</h1>
+      <button mat-icon-button (click)="appService.toggle()">
+        <mat-icon>{{ showExample ? 'visibility_off' : 'visibility' }}</mat-icon>
+      </button>
+    </div>
+    <app-example *ngIf="showExample" class="flex flex-col-reverse md:flex-row gap-4"></app-example>
+  </ng-container>
+</div>
