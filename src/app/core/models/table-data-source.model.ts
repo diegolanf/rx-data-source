@@ -107,12 +107,13 @@ export class TableDataSource<T> {
    */
   public readonly dataSource$: Observable<Observable<T[]>>;
 
-  private readonly actions = new RxActionFactory<TableDataSourceActions<T>>().create();
+  private readonly actions = this.factory.create();
   private readonly fallbackLimit: number = 10; // Fallback limit for paginate and scroll strategies if none is already defined
 
   constructor(
     @Optional() @Inject(TABLE_DATA_SOURCE_CONFIG) config: Partial<TableDataSourceConfig> | null,
     private dataSource: DataSource<T[]>,
+    private factory: RxActionFactory<TableDataSourceActions<T>>,
     private state: RxState<TableDataSourceState<T>>
   ) {
     this.state.set({

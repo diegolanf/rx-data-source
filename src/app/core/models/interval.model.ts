@@ -37,10 +37,11 @@ export class Interval {
    */
   private readonly interval$: Observable<void>;
 
-  private readonly actions = new RxActionFactory<IntervalActions>().create();
+  private readonly actions = this.factory.create();
 
   constructor(
     @Optional() @Inject(INTERVAL_CONFIG) config: IntervalState | null,
+    private factory: RxActionFactory<IntervalActions>,
     private state: RxState<IntervalState>
   ) {
     this.state.set(config ?? defaultIntervalConfig);

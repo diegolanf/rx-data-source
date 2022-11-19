@@ -52,10 +52,14 @@ export class DataSource<T> {
   public readonly reset$: Observable<void>;
   public readonly resetAndRefresh$: Observable<void>;
 
-  private readonly actions = new RxActionFactory<DataSourceActions>().create();
+  private readonly actions = this.factory.create();
   private readonly dataSource$: Observable<T>;
 
-  constructor(private interval: Interval, private state: RxState<DataSourceState<T>>) {
+  constructor(
+    private factory: RxActionFactory<DataSourceActions>,
+    private interval: Interval,
+    private state: RxState<DataSourceState<T>>
+  ) {
     this.state.set(initDataSourceState);
 
     this.clearData$ = this.actions.clearData$;
