@@ -4,27 +4,27 @@
     <div class="font-semilight pb-2">Data source</div>
     <mat-card>
       <div class="flex flex-row p-2.5">
-        <span class="grow font-light mr-2">Error:</span>{{ dataSource?.error$ | async }}
+        <span class="grow font-light mr-2">Error:</span>{{ dataSource?.error$ | push }}
       </div>
       <mat-divider></mat-divider>
       <div class="flex flex-row p-2.5">
         <span class="grow font-light mr-2">Initial state:</span
-        >{{ dataSource?.initialState$ | async }}
+        >{{ dataSource?.initialState$ | push }}
       </div>
       <mat-divider></mat-divider>
       <div class="flex flex-row p-2.5">
         <span class="grow font-light mr-2">Loading:</span>
-        {{ dataSource?.loading$ | async }}
+        {{ dataSource?.loading$ | push }}
       </div>
       <mat-divider></mat-divider>
       <div class="flex flex-row p-2.5">
         <span class="grow font-light mr-2">First loading:</span>
-        {{ dataSource?.firstLoading$ | async }}
+        {{ dataSource?.firstLoading$ | push }}
       </div>
       <mat-divider></mat-divider>
       <div class="flex flex-row p-2.5">
         <span class="grow font-light mr-2">After first loading:</span>
-        {{ dataSource?.afterFirstLoading$ | async }}
+        {{ dataSource?.afterFirstLoading$ | push }}
       </div>
     </mat-card>
   </div>
@@ -33,25 +33,25 @@
     <mat-card>
       <div class="flex flex-row p-2.5">
         <span class="grow font-light mr-2">Page:</span>
-        {{ tableDataSource?.page$ | async }}
+        {{ tableDataSource?.page$ | push }}
       </div>
       <mat-divider></mat-divider>
       <div class="flex flex-row p-2.5">
         <span class="grow font-light mr-2">Limit:</span>
-        {{ tableDataSource?.limit$ | async }}
+        {{ tableDataSource?.limit$ | push }}
       </div>
       <mat-divider></mat-divider>
       <div class="flex flex-row p-2.5">
-        <span class="grow font-light mr-2">Take:</span>{{ take$ | async }}
+        <span class="grow font-light mr-2">Take:</span>{{ take$ | push }}
       </div>
       <mat-divider></mat-divider>
       <div class="flex flex-row p-2.5">
-        <span class="grow font-light mr-2">Skip:</span>{{ skip$ | async }}
+        <span class="grow font-light mr-2">Skip:</span>{{ skip$ | push }}
       </div>
       <mat-divider></mat-divider>
       <div class="flex flex-row p-2.5">
         <span class="grow font-light mr-2">Strategy:</span>
-        {{ tableDataSource?.paginationStrategy$ | async }}
+        {{ tableDataSource?.paginationStrategy$ | push }}
       </div>
     </mat-card>
   </div>

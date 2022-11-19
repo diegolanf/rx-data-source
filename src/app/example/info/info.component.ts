@@ -5,12 +5,13 @@ import { MatDividerModule } from '@angular/material/divider';
 import { DataSource } from '@app/core/models/data-source.model';
 import { PaginationParams, PaginationStrategy } from '@app/core/models/table-config.model';
 import { TableDataSource } from '@app/core/models/table-data-source.model';
+import { PushModule } from '@rx-angular/template';
 import { map, Observable } from 'rxjs';
 
 @Component({
   selector: 'app-info',
   standalone: true,
-  imports: [CommonModule, MatCardModule, MatDividerModule],
+  imports: [CommonModule, MatCardModule, MatDividerModule, PushModule],
   templateUrl: './info.component.html',
   styleUrls: ['./info.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
