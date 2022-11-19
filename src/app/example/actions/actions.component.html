@@ -1,14 +1,26 @@
 <h2>Actions</h2>
 <mat-card>
-  <section class="flex flex-row items-center overflow-hidden p-2.5 gap-1">
+  <section class="flex flex-row items-center overflow-hidden py-1 px-2.5 gap-1">
     <div class="grow font-light mr-2">Data source:</div>
-    <button mat-icon-button (click)="dataSource?.refresh()">
+    <button
+      mat-icon-button
+      (click)="dataSource?.refresh()"
+      matTooltip="Refresh"
+      matTooltipPosition="above">
       <mat-icon>refresh</mat-icon>
     </button>
-    <button mat-icon-button (click)="dataSource?.refresh()">
+    <button
+      mat-icon-button
+      (click)="dataSource?.reset()"
+      matTooltip="Reset"
+      matTooltipPosition="above">
       <mat-icon>first_page</mat-icon>
     </button>
-    <button mat-icon-button (click)="dataSource?.resetAndRefresh()">
+    <button
+      mat-icon-button
+      (click)="dataSource?.resetAndRefresh()"
+      matTooltip="Reset and refresh"
+      matTooltipPosition="above">
       <mat-icon>start</mat-icon>
     </button>
   </section>
@@ -35,20 +47,30 @@
   </section>
   <mat-divider></mat-divider>
   <section class="flex flex-row items-center justify-center overflow-hidden py-1 px-2.5 gap-1">
-    <button mat-icon-button (click)="tableDataSource?.reset()">
-      <mat-icon>refresh</mat-icon>
+    <button mat-icon-button (click)="tableDataSource?.reset()" matTooltip="Reset table">
+      <mat-icon>clear_all</mat-icon>
     </button>
-    <button mat-icon-button (click)="tableDataSource?.scroll()">
+    <button mat-icon-button (click)="tableDataSource?.scroll()" matTooltip="Scroll">
       <mat-icon>arrow_downward</mat-icon>
     </button>
-    <button mat-icon-button (click)="tableDataSource?.previousPage()">
+    <button mat-icon-button (click)="tableDataSource?.previousPage()" matTooltip="Previous page">
       <mat-icon>arrow_back</mat-icon>
     </button>
-    <button mat-icon-button (click)="tableDataSource?.nextPage()">
+    <button mat-icon-button (click)="tableDataSource?.nextPage()" matTooltip="Next page">
       <mat-icon>arrow_forward</mat-icon>
     </button>
-    <button mat-stroked-button class="shrink-0" (click)="tableDataSource?.jumpToPage(5)">5</button>
-    <button mat-stroked-button class="shrink-0" (click)="tableDataSource?.jumpToPage(10)">
+    <button
+      mat-stroked-button
+      class="shrink-0"
+      (click)="tableDataSource?.jumpToPage(5)"
+      matTooltip="Jump to page 5">
+      5
+    </button>
+    <button
+      mat-stroked-button
+      class="shrink-0"
+      (click)="tableDataSource?.jumpToPage(10)"
+      matTooltip="Jump to page 10">
       10
     </button>
   </section>

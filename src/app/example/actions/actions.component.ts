@@ -5,6 +5,7 @@ import { MatButtonToggleModule } from '@angular/material/button-toggle';
 import { MatCardModule } from '@angular/material/card';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatIconModule } from '@angular/material/icon';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { DataSource } from '@app/core/models/data-source.model';
 import { PaginationStrategy } from '@app/core/models/table-config.model';
 import { TableDataSource } from '@app/core/models/table-data-source.model';
@@ -19,6 +20,7 @@ import { TableDataSource } from '@app/core/models/table-data-source.model';
     MatCardModule,
     MatDividerModule,
     MatIconModule,
+    MatTooltipModule,
   ],
   templateUrl: './actions.component.html',
   styleUrls: ['./actions.component.scss'],

@@ -2,7 +2,11 @@
   <ng-container *rxLet="appService.showExample$; let showExample">
     <div class="flex flex-row">
       <h1 class="grow">Data source with Rx-Angular</h1>
-      <button mat-icon-button (click)="appService.toggle()">
+      <button
+        mat-icon-button
+        (click)="appService.toggle()"
+        matTooltip="Show / hide component"
+        matTooltipPosition="before">
         <mat-icon>{{ showExample ? 'visibility_off' : 'visibility' }}</mat-icon>
       </button>
     </div>
