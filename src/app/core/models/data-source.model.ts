@@ -1,11 +1,10 @@
 import { Injectable } from '@angular/core';
-import { prepare } from '@app/shared/operators/prepare.operator';
+import { indicate } from '@app/shared/operators/indicate.operator';
 import { RxState } from '@rx-angular/state';
 import { RxActionFactory } from '@rx-angular/state/actions';
 import {
   catchError,
   EMPTY,
-  finalize,
   map,
   Observable,
   startWith,
@@ -80,7 +79,7 @@ export class DataSource<T> {
     this.dataSource$ = this.state.select('dataSource').pipe(
       switchMap((dataSource: Observable<T>) =>
         dataSource.pipe(
-          prepare(() => this.state.set({ loading: true })),
+          indicate(this.state), // Set loading in state to true while dataSource is active
           takeUntil(this.interval.execute$), // Stop if new execution takes place
           catchError(() => {
             this.state.set({ error: true });
@@ -91,9 +90,6 @@ export class DataSource<T> {
             if (this.state.get('error')) this.state.set({ error: false });
             if (this.state.get('initialState')) this.state.set({ initialState: false });
             return response;
-          }),
-          finalize(() => {
-            this.state.set({ loading: false });
           })
         )
       )
