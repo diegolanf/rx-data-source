@@ -1,6 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { RxState } from '@rx-angular/state';
 import { RxActionFactory } from '@rx-angular/state/actions';
+import { tap } from 'rxjs';
 import { RunHelpers, TestScheduler } from 'rxjs/internal/testing/TestScheduler';
 
 import { Interval, INTERVAL_CONFIG } from './interval.model';
@@ -32,13 +33,32 @@ describe('Interval', () => {
   });
 
   it('emit execute$ every second', () => {
+    const unsub = '1s - 999ms - 999ms -!';
     const expectedMarbles = '1s a 999ms a 999ms a';
     const expectedValues = {
       a: undefined,
     };
-    const unsub = '1s - 999ms - 999ms -!';
+
     testScheduler.run(({ expectObservable }: RunHelpers) => {
       expectObservable(interval.execute$, unsub).toBe(expectedMarbles, expectedValues);
+    });
+  });
+
+  it('emit execute$ on refresh and then again after 1 second', () => {
+    const unsub = '1s - 999ms - 499ms - 999ms -!';
+    const expectedMarbles = '1s a 999ms a 499ms a 999ms a';
+    const expectedValues = {
+      a: undefined,
+    };
+
+    const triggerMarbles = '2500ms b';
+    const triggerValues = {
+      b: (): void => interval.refresh(),
+    };
+
+    testScheduler.run(({ expectObservable, cold }: RunHelpers) => {
+      expectObservable(interval.execute$, unsub).toBe(expectedMarbles, expectedValues);
+      expectObservable(cold(triggerMarbles, triggerValues).pipe(tap((fn: () => void) => fn())));
     });
   });
 });
