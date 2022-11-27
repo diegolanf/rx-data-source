@@ -1,15 +1,27 @@
 import { Inject, Injectable, InjectionToken, Optional } from '@angular/core';
-import { isNumber } from '@app/shared/utils/validate.utils';
 import { RxState } from '@rx-angular/state';
 import { RxActionFactory } from '@rx-angular/state/actions';
-import { combineLatest, interval, map, merge, Observable, startWith, switchMap } from 'rxjs';
+import {
+  combineLatest,
+  EMPTY,
+  interval,
+  map,
+  merge,
+  Observable,
+  share,
+  startWith,
+  switchMap,
+} from 'rxjs';
 
 export interface IntervalState {
-  refreshInterval?: number;
+  /**
+   * Refresh interval in seconds.
+   */
+  refreshInterval: number;
 }
 
 export const defaultIntervalConfig: IntervalState = {
-  refreshInterval: undefined,
+  refreshInterval: 60,
 };
 
 export const INTERVAL_CONFIG = new InjectionToken<IntervalState>('interval.config');
@@ -33,7 +45,6 @@ export class Interval {
   /**
    * Emits every specified interval of time (based on refresh interval).
    * Interval resets on refresh action emission.
-   * If refresh interval is undefined, no emission takes place.
    */
   private readonly interval$: Observable<void>;
 
@@ -52,23 +63,21 @@ export class Interval {
       this.state.select('refreshInterval'),
       this.refresh$.pipe(startWith(undefined)),
     ]).pipe(
-      switchMap(([refreshInterval]: [number | undefined, void | undefined]) =>
-        // Only accept intervals greater than 1s
-        interval(
-          isNumber(refreshInterval) && refreshInterval > 0 ? refreshInterval * 1000 : undefined
-        )
+      switchMap(([refreshInterval]: [number, void | undefined]) =>
+        // Create interval only if refresh rate is greater or equal than 0.1 s
+        refreshInterval > 0.1 ? interval(refreshInterval * 1000) : EMPTY
       ),
       map(() => undefined) // Return void instead of number
     );
 
-    this.execute$ = merge(this.actions.refresh$, this.interval$);
+    this.execute$ = merge(this.actions.refresh$, this.interval$).pipe(share());
   }
 
   /**
-   * Update interval's refresh rate.
-   * @param refreshInterval Refresh interval.
+   * Update interval's refresh rate. If set to any number < 0.1, no interval is created.
+   * @param refreshInterval Refresh interval in seconds.
    */
-  public set refreshInterval(refreshInterval: number | undefined) {
+  public set refreshInterval(refreshInterval: number) {
     this.state.set({ refreshInterval });
   }
 

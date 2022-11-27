@@ -126,7 +126,7 @@ export class DataSource<T> {
    *
    * @param refreshInterval Refresh interval.
    */
-  public set refreshInterval(refreshInterval: number | undefined) {
+  public set refreshInterval(refreshInterval: number) {
     this.interval.refreshInterval = refreshInterval;
   }
 

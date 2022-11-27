@@ -61,4 +61,45 @@ describe('Interval', () => {
       expectObservable(cold(triggerMarbles, triggerValues).pipe(tap((fn: () => void) => fn())));
     });
   });
+
+  it('update refresh interval to 200ms halfway through a running interval', () => {
+    const unsub = '1s - 499ms - 199ms - 199ms -!';
+    const expectedMarbles = '1s a 499ms - 199ms a 199ms a';
+    const expectedValues = {
+      a: undefined,
+    };
+
+    const triggerMarbles = '1500ms b';
+    const triggerValues = {
+      b: (): void => {
+        interval.refreshInterval = 0.2;
+      },
+    };
+
+    testScheduler.run(({ expectObservable, cold }: RunHelpers) => {
+      expectObservable(interval.execute$, unsub).toBe(expectedMarbles, expectedValues);
+      expectObservable(cold(triggerMarbles, triggerValues).pipe(tap((fn: () => void) => fn())));
+    });
+  });
+
+  it('only emit execute$ on refresh if interval is 0', () => {
+    const unsub = '- 2s - 4s -!';
+    const expectedMarbles = '- 2s a 4s a';
+    const expectedValues = {
+      a: undefined,
+    };
+
+    const triggerMarbles = 'b 2s c 4s c';
+    const triggerValues = {
+      b: (): void => {
+        interval.refreshInterval = 0;
+      },
+      c: (): void => interval.refresh(),
+    };
+
+    testScheduler.run(({ expectObservable, cold }: RunHelpers) => {
+      expectObservable(interval.execute$, unsub).toBe(expectedMarbles, expectedValues);
+      expectObservable(cold(triggerMarbles, triggerValues).pipe(tap((fn: () => void) => fn())));
+    });
+  });
 });
