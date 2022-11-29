@@ -4,6 +4,7 @@ import { RxState } from '@rx-angular/state';
 import { RxActionFactory } from '@rx-angular/state/actions';
 import {
   catchError,
+  distinctUntilChanged,
   EMPTY,
   map,
   Observable,
@@ -67,12 +68,14 @@ export class DataSource<T> {
 
     this.afterFirstLoading$ = this.loading$.pipe(
       withLatestFrom(this.initialState$),
-      map(([loading, initialState]: [boolean, boolean]) => loading && !initialState)
+      map(([loading, initialState]: [boolean, boolean]) => loading && !initialState),
+      distinctUntilChanged()
     );
 
     this.firstLoading$ = this.loading$.pipe(
       withLatestFrom(this.initialState$),
-      map(([loading, initialState]: [boolean, boolean]) => loading && initialState)
+      map(([loading, initialState]: [boolean, boolean]) => loading && initialState),
+      distinctUntilChanged()
     );
 
     // Add operators to data source
