@@ -44,7 +44,7 @@ describe('Interval', () => {
     });
   });
 
-  it('emit execute$ on refresh and then again after 1 second', () => {
+  it('emit execute$ every second, on refresh action (at 2500 ms) and then again after 1 second', () => {
     const unsub = '1s - 999ms - 499ms - 999ms -!';
     const expectedMarbles = '1s a 999ms a 499ms a 999ms a';
     const expectedValues = {
@@ -82,7 +82,7 @@ describe('Interval', () => {
     });
   });
 
-  it('only emit execute$ on refresh if interval is 0', () => {
+  it('only emit execute$ only on refresh if interval is 0', () => {
     const unsub = '- 2s - 4s -!';
     const expectedMarbles = '- 2s a 4s a';
     const expectedValues = {
