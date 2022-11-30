@@ -82,7 +82,7 @@ describe('Interval', () => {
     });
   });
 
-  it('only emit execute$ only on refresh if interval is 0', () => {
+  it('only emit execute$ on refresh action if interval is 0', () => {
     const unsub = '- 2s - 4s -!';
     const expectedMarbles = '- 2s a 4s a';
     const expectedValues = {
