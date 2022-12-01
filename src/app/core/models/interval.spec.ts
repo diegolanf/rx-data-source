@@ -14,12 +14,12 @@ describe('Interval', () => {
     TestBed.configureTestingModule({
       providers: [
         Interval,
-        RxActionFactory,
-        RxState,
         {
           provide: INTERVAL_CONFIG,
           useValue: { refreshInterval: 1 },
         },
+        RxActionFactory,
+        RxState,
       ],
     });
     interval = TestBed.inject(Interval);

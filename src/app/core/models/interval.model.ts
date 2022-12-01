@@ -13,6 +13,9 @@ import {
   switchMap,
 } from 'rxjs';
 
+/**
+ * Interval state.
+ */
 export interface IntervalState {
   /**
    * Refresh interval in seconds.
@@ -20,31 +23,46 @@ export interface IntervalState {
   refreshInterval: number;
 }
 
+/**
+ * Default interval state.
+ * - refreshInterval = 60 (seconds)
+ */
 export const defaultIntervalConfig: IntervalState = {
   refreshInterval: 60,
 };
 
 export const INTERVAL_CONFIG = new InjectionToken<IntervalState>('interval.config');
 
+/**
+ * Interval actions.
+ */
 interface IntervalActions {
+  /**
+   * Refresh action.
+   */
   refresh: void;
 }
 
+/**
+ * Interval class with {@link execute$} observable and {@link refresh} action.
+ */
 @Injectable()
 export class Interval {
   /**
-   * Combines interval and refresh action and indicates that an execution should take place.
+   * Combines {@link interval$} observable and {@link refresh$} action.
+   * Indicates that an execution should take place.
    */
   public readonly execute$: Observable<void>;
 
   /**
-   * Observable of refresh action.
+   * Observable of {@link refresh} action.
    */
   public readonly refresh$: Observable<void>;
 
   /**
-   * Emits every specified interval of time (based on refresh interval).
-   * Interval resets on refresh action emission.
+   * Emits every specified interval of time (based on the {@link IntervalState.refreshInterval refresh rate}).
+   * Interval resets on {@link refresh$} action emission.
+   * @private
    */
   private readonly interval$: Observable<void>;
 
@@ -55,6 +73,9 @@ export class Interval {
     private factory: RxActionFactory<IntervalActions>,
     private state: RxState<IntervalState>
   ) {
+    /**
+     * Set initial {@link IntervalState state} based on provided or {@link defaultIntervalConfig default} config.
+     */
     this.state.set(config ?? defaultIntervalConfig);
 
     this.refresh$ = this.actions.refresh$;
@@ -74,7 +95,7 @@ export class Interval {
   }
 
   /**
-   * Update interval's refresh rate. If set to any number < 0.1, no interval is created.
+   * Update interval's {@link IntervalState.refreshInterval refresh rate}. If set to any number < 0.1, no interval is created.
    * @param refreshInterval Refresh interval in seconds.
    */
   public set refreshInterval(refreshInterval: number) {
@@ -82,7 +103,7 @@ export class Interval {
   }
 
   /**
-   * Immediately trigger execution and reset interval.
+   * Immediately trigger {@link execute$ execution} and reset {@link interval$ interval}.
    */
   public refresh(): void {
     this.actions.refresh();

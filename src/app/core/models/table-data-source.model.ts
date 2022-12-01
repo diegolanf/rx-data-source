@@ -20,10 +20,31 @@ import {
 import { DataSource } from './data-source.model';
 import { PaginationParams, PaginationStrategy, Sort } from './table-config.model';
 
+/**
+ * Table data source configuration.
+ */
 export interface TableDataSourceConfig {
+  /**
+   * Row limit per page.
+   */
   limit: number | boolean;
+
+  /**
+   * Current page.
+   */
   page: number;
+
+  /**
+   * Pagination strategy.
+   * - scroll
+   * - paginate
+   * - none
+   */
   paginationStrategy: PaginationStrategy;
+
+  /**
+   * Sort column and direction.
+   */
   sort?: Sort;
 }
 
@@ -31,84 +52,132 @@ export const TABLE_DATA_SOURCE_CONFIG = new InjectionToken<Partial<TableDataSour
   'table-data-source.config'
 );
 
+/**
+ * Default table data source configuration.
+ * - limit = false
+ * - paginationStrategy = none
+ */
 export const defaultTableDataSourceConfig: Partial<TableDataSourceConfig> = {
   limit: false,
   paginationStrategy: PaginationStrategy.none,
 };
 
+/**
+ * Table data source state.
+ */
 interface TableDataSourceState<T> extends TableDataSourceConfig {
+  /**
+   * Rows received from {@link dataSource$} observable.
+   */
   rows: T[];
 }
 
+/**
+ * Table data source actions.
+ */
 interface TableDataSourceActions<T> {
+  /**
+   * Jump to page action.
+   */
   jumpToPage: number;
+
+  /**
+   * Next page action.
+   */
   nextPage: void;
+
+  /**
+   * Previous page action.
+   */
   previousPage: void;
+
+  /**
+   * Reset action:
+   * - Sets {@link rows$} to an empty array.
+   */
   reset: void;
+
+  /**
+   * Scroll action.
+   */
   scroll: void;
+
+  /**
+   * Set data source action.
+   */
   setDataSource: (params: HttpParams) => Observable<T[]>;
 }
 
+/**
+ * Table data source class which exposes responses from a {@link dataSource$ source} observable in a {@link rows$} stream.
+ * Composed of internal {@link DataSource dataSource} and {@link Interval interval} classes.
+ */
 @Injectable()
 export class TableDataSource<T> {
   /**
-   * Returns true if table's rows length is 0.
+   * Returns true if table's {@link rows$ rows} length is 0.
    */
   public readonly empty$: Observable<boolean>;
 
   /**
-   * Row limit per page.
+   * Observable of {@link TableDataSourceState.limit limit state}.
    */
   public readonly limit$: Observable<number | boolean> = this.state.select('limit');
 
   /**
-   * Current page.
+   * Observable of {@link TableDataSourceState.page page state}.
    */
   public readonly page$: Observable<number> = this.state.select('page');
 
   /**
-   * Table's rows.
+   * Observable of {@link TableDataSourceState.rows rows state}.
    */
   public readonly rows$: Observable<T[]> = this.state.select('rows');
 
   /**
-   * Sort column and direction.
+   * Observable of {@link TableDataSourceState.sort sort state}.
    */
   public readonly sort$: Observable<Sort | undefined> = this.state.select('sort');
 
   /**
-   * Pagination strategy (paginate, scroll or none).
+   * Observable of {@link TableDataSourceState.paginationStrategy pagination strategy state}.
    */
   public readonly paginationStrategy$: Observable<PaginationStrategy> =
     this.state.select('paginationStrategy');
 
   /**
-   * True if {@link paginationStrategy | pagination strategy} is 'none'.
+   * True if {@link paginationStrategy pagination strategy} is 'none'.
    */
   public readonly noPaginationStrategy$: Observable<boolean>;
 
   /**
-   * True if {@link paginationStrategy | pagination strategy} is 'paginate'.
+   * True if {@link paginationStrategy pagination strategy} is 'paginate'.
    */
   public readonly paginateStrategy$: Observable<boolean>;
 
   /**
-   * True if {@link paginationStrategy | pagination strategy} is 'scroll'.
+   * True if {@link paginationStrategy pagination strategy} is 'scroll'.
    */
   public readonly scrollStrategy$: Observable<boolean>;
 
   /**
-   * Skip and take parameters for pagination.
+   * Skip and take {@link PaginationParams parameters} for pagination.
    */
   public readonly paginationParams$: Observable<PaginationParams | undefined>;
 
   /**
-   * Data source observable containing the pagination and sort parameters.
+   * Data source observable containing {@link paginationParams$ pagination} and {@link sort$ sort} {@link HttpParams parameters}.
+   * Observable is connected to internal {@link DataSourceState.dataSource dataSource's source} during initialisation.
    */
   public readonly dataSource$: Observable<Observable<T[]>>;
 
+  /**
+   * Fallback {@link limit$ limit} for paginate and scroll {@link paginationStrategy$ strategies} if none is already defined.
+   * @private
+   */
+  private readonly fallbackLimit: number = 10;
+
   private readonly actions = this.factory.create();
-  private readonly fallbackLimit: number = 10; // Fallback limit for paginate and scroll strategies if none is already defined
 
   constructor(
     @Optional() @Inject(TABLE_DATA_SOURCE_CONFIG) config: Partial<TableDataSourceConfig> | null,
@@ -116,6 +185,9 @@ export class TableDataSource<T> {
     private factory: RxActionFactory<TableDataSourceActions<T>>,
     private state: RxState<TableDataSourceState<T>>
   ) {
+    /**
+     * Set initial {@link TableDataSourceState state} based on provided or {@link defaultTableDataSourceConfig default} config.
+     */
     this.state.set({
       limit: config?.limit ?? defaultTableDataSourceConfig.limit,
       paginationStrategy:
@@ -137,6 +209,11 @@ export class TableDataSource<T> {
       map((strategy: PaginationStrategy) => strategy === PaginationStrategy.scroll)
     );
 
+    /**
+     * Combine {@link limit$ }, {@link page$ } and {@link paginationStrategy$ }
+     * into a single observable of {@link PaginationParams}.
+     * @see paginationParams$
+     */
     this.paginationParams$ = combineLatest([
       this.limit$,
       this.page$,
@@ -163,6 +240,11 @@ export class TableDataSource<T> {
       )
     );
 
+    /**
+     * Combines source from {@link source set source action}
+     * with {@link paginationParams$ pagination} and {@link sort$ sort} {@link HttpParams parameters}.
+     * @see dataSource$.
+     */
     this.dataSource$ = combineLatest([
       this.actions.setDataSource$,
       this.paginationParams$,
@@ -185,6 +267,12 @@ export class TableDataSource<T> {
       )
     );
 
+    /**
+     * Connect {@link TableDataSourceState.page page state} to {@link jumpToPage}, {@link nextPage} and {@link previousPage} actions.
+     * - On jumpToPage, resets scan operator and uses emitted value as seed.
+     * - On nextPage, adds 1 to currentPage accumulator.
+     * - On previousPage, subtracts 1 from currentPage accumulator.
+     */
     this.state.connect(
       'page',
       this.actions.jumpToPage$.pipe(
@@ -209,10 +297,17 @@ export class TableDataSource<T> {
       )
     );
 
-    this.state.hold(this.paginationStrategy$.pipe(skip(1)), () => this.reset(false));
-
+    /**
+     * Connect {@link DataSourceState.dataSource dataSource's source} with {@link dataSource$} observable.
+     */
     this.dataSource.connectSource(this.dataSource$);
 
+    /**
+     * Connect {@link TableDataSourceState.rows rows state} with {@link DataSource.data$ dataSource's data$}.
+     * - Set back to empty array on {@link reset} action.
+     * - Appends new {@link DataSource.data$ data$} to the {@link rows$ rows} array if {@link paginationStrategy$} is set to scroll,
+     * otherwise replaces it.
+     */
     this.state.connect(
       'rows',
       this.actions.reset$.pipe(
@@ -234,14 +329,23 @@ export class TableDataSource<T> {
         )
       )
     );
+
+    /**
+     * Trigger {@link reset} whenever {@link paginationStrategy$} changes after its initial value.
+     */
+    this.state.hold(this.paginationStrategy$.pipe(skip(1)), () => this.refresh(false));
   }
 
+  /**
+   * Current value of {@link TableDataSourceState.paginationStrategy pagination strategy state}.
+   * @private
+   */
   private get paginateStrategy(): boolean {
     return this.state.get('paginationStrategy') === PaginationStrategy.paginate;
   }
 
   /**
-   * Updates source of internal data source.
+   * Updates source of {@link dataSource$}.
    *
    * @param dataSource
    */
@@ -250,7 +354,7 @@ export class TableDataSource<T> {
   }
 
   /**
-   * Update page's row limit.
+   * Update page's row {@link limit$ limit}.
    *
    * @param limit
    */
@@ -259,7 +363,7 @@ export class TableDataSource<T> {
   }
 
   /**
-   * Update pagination strategy.
+   * Update {@link paginationStrategy$ pagination strategy}.
    *
    * @param paginationStrategy
    */
@@ -276,7 +380,7 @@ export class TableDataSource<T> {
   }
 
   /**
-   * Update sort column and direction.
+   * Update {@link sort$ sort} column and direction.
    *
    * @param sort
    */
@@ -285,28 +389,28 @@ export class TableDataSource<T> {
   }
 
   /**
-   * Load next set of rows and concatenate it to the existing ones.
+   * Load next set of {@link rows$ rows} and concatenate it to the existing ones.
    */
   public scroll(): void {
     if (this.state.get('paginationStrategy') === PaginationStrategy.scroll) this.actions.nextPage();
   }
 
   /**
-   * Load next page.
+   * Load next {@link page$ page}.
    */
   public nextPage(): void {
     if (this.paginateStrategy) this.actions.nextPage();
   }
 
   /**
-   * Load previous page.
+   * Load previous {@link page$ page}.
    */
   public previousPage(): void {
     if (this.paginateStrategy) this.actions.previousPage();
   }
 
   /**
-   * Jump to specified page.
+   * Jump to specified {@link page$ page}.
    *
    * @param page
    */
@@ -315,15 +419,42 @@ export class TableDataSource<T> {
   }
 
   /**
-   * Reset table data.
+   * Refresh table:
+   * - If {@link page$ page} !== 1, {@link jumpToPage jump to page}  1 (which will trigger a refresh)
+   * and call internal {@link DataSource.clearData data source clear data}.
+   * - Else if {@link page$ page} === 1 and forceRefresh === true (default = true),
+   * call internal {@link DataSource.refresh data source refresh}.
+   * - Always: Call {@link TableDataSourceActions.reset reset} action.
+   *
+   * @param forceRefresh
    */
-  public reset(forceRefresh: boolean = true): void {
+  public refresh(forceRefresh: boolean = true): void {
+    if (this.state.get('page') !== 1) {
+      // Only clearData as jump to page will trigger a refresh
+      this.dataSource.clearData();
+      this.actions.jumpToPage(1);
+    } else if (forceRefresh) {
+      this.dataSource.refresh();
+    }
+
+    // Ensure accumulator reset occurs after dataSource.
+    asyncScheduler.schedule(() => this.actions.reset());
+  }
+
+  /**
+   * Reset table:
+   * - If {@link page$ page} !== 1, {@link jumpToPage jump to page}  1 (which will trigger a refresh)
+   * and call internal {@link DataSource.reset data source reset}.
+   * - If {@link page$ page} === 1, call internal {@link DataSource.resetAndRefresh data source reset and refresh}.
+   * - Always: Call {@link TableDataSourceActions.reset reset} action.
+   */
+  public reset(): void {
     if (this.state.get('page') !== 1) {
       // Only reset, jump to page will trigger a refresh
       this.dataSource.reset();
       this.actions.jumpToPage(1);
-    } else if (forceRefresh) {
-      this.dataSource.refresh();
+    } else {
+      this.dataSource.resetAndRefresh();
     }
 
     // Ensure accumulator reset occurs after dataSource.

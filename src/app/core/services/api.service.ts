@@ -10,7 +10,7 @@ export class ApiService {
   private totalRows = 25;
 
   public getRows(params: HttpParams): Observable<number[]> {
-    const skip = +(params.get('skip') ?? '0');
+    const skip = +(params.get('skip') ?? 0);
     const take = +(params.get('take') ?? this.totalRows);
     console.info('Params - Skip:', skip, ', Take:', take);
     return of(generateArray((i: number) => skip + i + 1, take)).pipe(
