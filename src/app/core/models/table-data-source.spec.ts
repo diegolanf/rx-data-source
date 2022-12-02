@@ -14,10 +14,17 @@ describe('TableDataSource', () => {
   let dataSourceSpy: SpyObj<DataSource<number[]>>;
   let tableDataSource: TableDataSource<number>;
   let testScheduler: TestScheduler;
+
   const source: (params: HttpParams) => Observable<number[]> = (params: HttpParams) => {
+    const sortBy = params.get('sortBy') ? 1 : 0;
+    const sortDirection = params.get('sortDirection')
+      ? params.get('sortDirection') === 'asc'
+        ? 2
+        : 1
+      : 0;
     const skip = +(params.get('skip') ?? 0);
-    const take = +(params.get('take') ?? 1);
-    return of([skip, skip + take]);
+    const take = +(params.get('take') ?? 0);
+    return of([sortBy, sortDirection, skip, take]);
   };
 
   const data$ = new Subject<number[]>();
@@ -492,24 +499,69 @@ describe('TableDataSource', () => {
     });
   });
 
-  it('should return nested observable with parameters from dataSource$', () => {
+  // Data source
+  it('should return nested observable with parameters from dataSource$ based on provided configuration', () => {
     const unsub = '-!';
-    const expectedMarbles = '(a|)';
+
+    const expectedMarbles = 'a';
     const expectedValues = {
-      // From provided configuration and source definition
-      a: [30, 60],
+      // sortBy, sortDirection, skip, take
+      a: [1, 2, 30, 30],
     };
 
-    const triggerMarbles = 'e';
+    const triggerMarbles = 'b';
     const triggerValues = {
-      e: (): void => {
+      b: (): void => {
         tableDataSource.source = source;
       },
     };
 
     testScheduler.run(({ expectObservable, cold }: RunHelpers) => {
-      expectObservable(tableDataSource.dataSource$, unsub).toBe('a', {
-        a: cold(expectedMarbles, expectedValues),
+      expectObservable(tableDataSource.dataSource$, unsub).toBe(expectedMarbles, {
+        a: cold('(a|)', { a: expectedValues.a }),
+      });
+      expectObservable(cold(triggerMarbles, triggerValues).pipe(tap((fn: () => void) => fn())));
+    });
+  });
+
+  it('should update parameters in nested observable from dataSource$ when changing page, limit and sort', () => {
+    const unsub = '-----!';
+    const expectedMarbles = 'abcde';
+    // sortBy, sortDirection, skip, take
+    const expectedValues = {
+      a: [1, 2, 30, 30],
+      b: [1, 2, 60, 30],
+      c: [1, 1, 60, 30],
+      d: [0, 0, 60, 30],
+      e: [0, 0, 20, 10],
+    };
+
+    const triggerMarbles = 'fghij';
+    const triggerValues = {
+      f: (): void => {
+        tableDataSource.source = source;
+      },
+      g: (): void => {
+        tableDataSource.nextPage();
+      },
+      h: (): void => {
+        tableDataSource.sort = { direction: SortDirection.desc, column: 'column1' };
+      },
+      i: (): void => {
+        tableDataSource.sort = null;
+      },
+      j: (): void => {
+        tableDataSource.limit = 10;
+      },
+    };
+
+    testScheduler.run(({ expectObservable, cold }: RunHelpers) => {
+      expectObservable(tableDataSource.dataSource$, unsub).toBe(expectedMarbles, {
+        a: cold('(a|)', { a: expectedValues.a }),
+        b: cold('(a|)', { a: expectedValues.b }),
+        c: cold('(a|)', { a: expectedValues.c }),
+        d: cold('(a|)', { a: expectedValues.d }),
+        e: cold('(a|)', { a: expectedValues.e }),
       });
       expectObservable(cold(triggerMarbles, triggerValues).pipe(tap((fn: () => void) => fn())));
     });

@@ -351,7 +351,9 @@ export class TableDataSource<T> {
   /**
    * Updates source of {@link dataSource$}.
    *
-   * @param dataSource
+   * @param dataSource - Arrow function which returns an observable and takes
+   * {@link HttpParams HTTP parameters}. The following parameters will be passed when
+   * the function is consumed: skip, take, sortBy and sortDirection.
    */
   public set source(dataSource: (params: HttpParams) => Observable<T[]>) {
     this.actions.setDataSource(dataSource);
