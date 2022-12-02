@@ -15,6 +15,8 @@ describe('TableDataSource', () => {
   let tableDataSource: TableDataSource<number>;
   let testScheduler: TestScheduler;
 
+  const data$ = new Subject<number[]>();
+
   const source: (params: HttpParams) => Observable<number[]> = (params: HttpParams) => {
     const sortBy = params.get('sortBy') ? 1 : 0;
     const sortDirection = params.get('sortDirection')
@@ -26,8 +28,6 @@ describe('TableDataSource', () => {
     const take = +(params.get('take') ?? 0);
     return of([sortBy, sortDirection, skip, take]);
   };
-
-  const data$ = new Subject<number[]>();
 
   beforeEach(() => {
     dataSourceSpy = jasmine.createSpyObj(
@@ -557,18 +557,104 @@ describe('TableDataSource', () => {
 
     testScheduler.run(({ expectObservable, cold }: RunHelpers) => {
       expectObservable(tableDataSource.dataSource$, unsub).toBe(expectedMarbles, {
-        a: cold('(a|)', { a: expectedValues.a }),
-        b: cold('(a|)', { a: expectedValues.b }),
-        c: cold('(a|)', { a: expectedValues.c }),
-        d: cold('(a|)', { a: expectedValues.d }),
-        e: cold('(a|)', { a: expectedValues.e }),
+        a: cold('(z|)', { z: expectedValues.a }),
+        b: cold('(z|)', { z: expectedValues.b }),
+        c: cold('(z|)', { z: expectedValues.c }),
+        d: cold('(z|)', { z: expectedValues.d }),
+        e: cold('(z|)', { z: expectedValues.e }),
       });
       expectObservable(cold(triggerMarbles, triggerValues).pipe(tap((fn: () => void) => fn())));
     });
   });
-});
 
-// Rows
-// Empty
-// Reset
-// Refresh
+  // Rows
+  it('should replace rows if pagination strategy is paginate or none', () => {
+    const unsub = '----!';
+    const expectedMarbles = 'ab-c';
+    const expectedValues = {
+      a: [1, 2, 3],
+      b: [4, 5, 6],
+      c: [7, 8, 9],
+    };
+
+    const triggerMarbles = 'defg';
+    const triggerValues = {
+      d: (): void => {
+        data$.next([1, 2, 3]);
+      },
+      e: (): void => {
+        data$.next([4, 5, 6]);
+      },
+      f: (): void => {
+        tableDataSource.paginationStrategy = PaginationStrategy.none;
+      },
+      g: (): void => {
+        data$.next([7, 8, 9]);
+      },
+    };
+
+    testScheduler.run(({ expectObservable, cold }: RunHelpers) => {
+      expectObservable(tableDataSource.rows$, unsub).toBe(expectedMarbles, expectedValues);
+      expectObservable(cold(triggerMarbles, triggerValues).pipe(tap((fn: () => void) => fn())));
+    });
+  });
+
+  it('should append rows if pagination strategy is scroll', () => {
+    const unsub = '----!';
+    const expectedMarbles = '-abc';
+    const expectedValues = {
+      a: [1, 2, 3],
+      b: [1, 2, 3, 4, 5, 6],
+      c: [1, 2, 3, 4, 5, 6, 7, 8, 9],
+    };
+
+    const triggerMarbles = 'defg';
+    const triggerValues = {
+      d: (): void => {
+        tableDataSource.paginationStrategy = PaginationStrategy.scroll;
+      },
+      e: (): void => {
+        data$.next([1, 2, 3]);
+      },
+      f: (): void => {
+        data$.next([4, 5, 6]);
+      },
+      g: (): void => {
+        data$.next([7, 8, 9]);
+      },
+    };
+
+    testScheduler.run(({ expectObservable, cold }: RunHelpers) => {
+      expectObservable(tableDataSource.rows$, unsub).toBe(expectedMarbles, expectedValues);
+      expectObservable(cold(triggerMarbles, triggerValues).pipe(tap((fn: () => void) => fn())));
+    });
+  });
+
+  // Empty
+  it('should emit true on empty$ if rows$ array is an empty', () => {
+    const unsub = '----!';
+    const expectedMarbles = '-ab';
+    const expectedValues = {
+      a: false,
+      b: true,
+    };
+
+    const triggerMarbles = '-cd';
+    const triggerValues = {
+      c: (): void => {
+        data$.next([1, 2, 3]);
+      },
+      d: (): void => {
+        data$.next([]);
+      },
+    };
+
+    testScheduler.run(({ expectObservable, cold }: RunHelpers) => {
+      expectObservable(tableDataSource.empty$, unsub).toBe(expectedMarbles, expectedValues);
+      expectObservable(cold(triggerMarbles, triggerValues).pipe(tap((fn: () => void) => fn())));
+    });
+  });
+
+  // Reset
+  // Refresh
+});

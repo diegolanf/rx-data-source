@@ -66,23 +66,31 @@ describe('DataSource', () => {
     });
   });
 
-  it('should connect source with a nested observable (i.e. Observable<Observable<T>>) and emit a value', () => {
-    const unsub = '-!';
-    const expectedMarbles = 'a';
+  it('should connect source with a nested observable (i.e. Observable<Observable<T>>) and emit a value for every observable emission', () => {
+    const unsub = '---!';
+    const expectedMarbles = 'abc';
     const expectedValues = {
       a: 1,
+      b: 2,
+      c: 3,
     };
 
-    const triggerMarbles = 'b';
-    const triggerValues = {
-      b: (): void => {
-        dataSource.connectSource(of(of(1)));
-      },
+    const observableMarbles = 'def';
+    const observableValues = {
+      d: of(1),
+      e: of(2),
+      f: of(3),
     };
 
     testScheduler.run(({ expectObservable, cold }: RunHelpers) => {
       expectObservable(dataSource.data$, unsub).toBe(expectedMarbles, expectedValues);
-      expectObservable(cold(triggerMarbles, triggerValues).pipe(tap((fn: () => void) => fn())));
+      expectObservable(
+        cold('z', {
+          z: (): void => {
+            dataSource.connectSource(cold(observableMarbles, observableValues));
+          },
+        }).pipe(tap((fn: () => void) => fn()))
+      );
     });
   });
 
