@@ -45,7 +45,7 @@ export interface TableDataSourceConfig {
   /**
    * Sort column and direction.
    */
-  sort?: Sort;
+  sort: Sort | null;
 }
 
 export const TABLE_DATA_SOURCE_CONFIG = new InjectionToken<Partial<TableDataSourceConfig>>(
@@ -137,7 +137,7 @@ export class TableDataSource<T> {
   /**
    * Observable of {@link TableDataSourceState.sort sort state}.
    */
-  public readonly sort$: Observable<Sort | undefined> = this.state.select('sort');
+  public readonly sort$: Observable<Sort | null> = this.state.select('sort');
 
   /**
    * Observable of {@link TableDataSourceState.paginationStrategy pagination strategy state}.
@@ -248,18 +248,18 @@ export class TableDataSource<T> {
     this.dataSource$ = combineLatest([
       this.actions.setDataSource$,
       this.paginationParams$,
-      this.sort$.pipe(startWith(undefined)),
+      this.sort$.pipe(startWith(null)),
     ]).pipe(
       map(
         ([dataSource, paginationParams, sort]: [
           (params: HttpParams) => Observable<T[]>,
           PaginationParams | undefined,
-          Sort | undefined
+          Sort | null
         ]) => {
           let params = new HttpParams();
           if (paginationParams !== undefined)
             params = params.set('skip', paginationParams.skip).set('take', paginationParams.take);
-          if (sort) {
+          if (sort !== null) {
             params = params.set('sortBy', sort.column).set('sortDirection', sort.direction);
           }
           return dataSource(params);
@@ -388,7 +388,7 @@ export class TableDataSource<T> {
    *
    * @param sort
    */
-  public set sort(sort: Sort | undefined) {
+  public set sort(sort: Sort | null) {
     this.state.set({ sort });
   }
 

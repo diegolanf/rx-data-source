@@ -55,7 +55,7 @@ describe('DataSource', () => {
   });
 
   // Defining source and general behaviour tests
-  it('emit data$ when source is defined and after every interval.execute$', () => {
+  it('should emit data$ when source is defined and after every interval.execute$', () => {
     let emit = 1;
     dataSource.source = defer(() => of(emit));
     const unsub = '- 999ms - 999ms -!';
@@ -80,7 +80,7 @@ describe('DataSource', () => {
     });
   });
 
-  it('connect source with a nested observable (i.e. Observable<Observable<T>>) and emit a value', () => {
+  it('should connect source with a nested observable (i.e. Observable<Observable<T>>) and emit a value', () => {
     dataSource.connectSource(of(of(1)));
     const unsub = '-!';
     const expectedMarbles = 'a';
@@ -93,7 +93,7 @@ describe('DataSource', () => {
     });
   });
 
-  it('keep listening to active source until it completes and emit a response for each different value', () => {
+  it('should keep listening to active source until it completes and emit a response for each different value', () => {
     const unsub = '- 999ms - 999ms - 999ms -!';
     const sourceMarbles = 'a 999ms a 999ms b 999ms c|';
 
@@ -109,7 +109,7 @@ describe('DataSource', () => {
     });
   });
 
-  it('emit a response immediately from new source when updating it', () => {
+  it('should emit a response immediately from new source when updating it', () => {
     dataSource.source = of(1);
     const unsub = '- 999ms -!';
     const expectedMarbles = 'a 999ms b';
@@ -132,7 +132,7 @@ describe('DataSource', () => {
   });
 
   // Loading observables tests
-  it('emit data$ only once, after source is interrupted and first completes successfully', () => {
+  it('should emit data$ only once, after source is interrupted and first completes successfully', () => {
     dataSource.source = loadingObservablesTests.source;
 
     /**
@@ -157,7 +157,7 @@ describe('DataSource', () => {
     });
   });
 
-  it('toggle loading$ observable every time source observable is active', () => {
+  it('should toggle loading$ observable every time source observable is active', () => {
     dataSource.source = loadingObservablesTests.source;
 
     /**
@@ -182,7 +182,7 @@ describe('DataSource', () => {
     });
   });
 
-  it('toggle firstLoading$ observable while source observable is active, but only before data is retrieved for the first time', () => {
+  it('should toggle firstLoading$ observable while source observable is active, but only before data is retrieved for the first time', () => {
     dataSource.source = loadingObservablesTests.source;
 
     /**
@@ -208,7 +208,7 @@ describe('DataSource', () => {
     });
   });
 
-  it('toggle afterFirstLoading$ observable while source observable is active, but only after data is retrieved for the first time', () => {
+  it('should toggle afterFirstLoading$ observable while source observable is active, but only after data is retrieved for the first time', () => {
     dataSource.source = loadingObservablesTests.source;
 
     /**
@@ -234,7 +234,7 @@ describe('DataSource', () => {
   });
 
   // Error observable tests
-  it('emit true on error$ observable if source throws an error', () => {
+  it('should emit true on error$ observable if source throws an error', () => {
     dataSource.source = throwError(() => new Error());
     const unsub = '-!';
     const expectedMarbles = 'a';
@@ -247,7 +247,7 @@ describe('DataSource', () => {
     });
   });
 
-  it('emit false on error$ observable every time source completes without error', () => {
+  it('should emit false on error$ observable every time source completes without error', () => {
     dataSource.source = of(1);
     const unsub = '---!';
     const expectedMarbles = 'aba';
@@ -273,13 +273,13 @@ describe('DataSource', () => {
   });
 
   // Set refresh interval tests
-  it('set interval.refreshInterval on set refreshInterval', () => {
+  it('should set interval.refreshInterval on set refreshInterval', () => {
     dataSource.refreshInterval = 2;
     expect(intervalSpy.refreshInterval).toBe(2);
   });
 
   // Clear data
-  it('clear data$ observable on clearData action', () => {
+  it('should clear data$ observable on clearData action', () => {
     dataSource.source = of(1);
     const unsub = '--!';
     const expectedMarbles = 'ab';
@@ -302,7 +302,7 @@ describe('DataSource', () => {
   });
 
   // Reset tests
-  it('toggle initialState to true on reset action', () => {
+  it('should toggle initialState to true on reset action', () => {
     dataSource.source = of(1);
     const unsub = '--!';
     const expectedMarbles = 'ab';
@@ -324,7 +324,7 @@ describe('DataSource', () => {
     });
   });
 
-  it('reset data$ to null on reset action', () => {
+  it('should reset data$ to null on reset action', () => {
     dataSource.source = of(1);
     const unsub = '--!';
     const expectedMarbles = 'ab';
@@ -346,7 +346,7 @@ describe('DataSource', () => {
     });
   });
 
-  it('signal reset action through reset$ observable', () => {
+  it('should signal reset action through reset$ observable', () => {
     const unsub = '-!';
     const expectedMarbles = 'a';
     const expectedValues = {
@@ -367,12 +367,12 @@ describe('DataSource', () => {
   });
 
   // Refresh tests
-  it('call interval.refresh on refresh action', () => {
+  it('should call interval.refresh on refresh action', () => {
     dataSource.refresh();
     expect(intervalSpy.refresh).toHaveBeenCalled();
   });
 
-  it('call interval.refresh on resetAndRefresh action and signal it through resetAndRefresh$ observable', () => {
+  it('should call interval.refresh on resetAndRefresh action and signal it through resetAndRefresh$ observable', () => {
     const unsub = '-!';
     const expectedMarbles = 'a';
     const expectedValues = {

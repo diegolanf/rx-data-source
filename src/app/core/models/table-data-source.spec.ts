@@ -42,7 +42,7 @@ describe('TableDataSource', () => {
             paginationStrategy: PaginationStrategy.paginate,
             sort: {
               direction: SortDirection.asc,
-              column: 'value',
+              column: 'defaultColumn',
             },
           },
         },
@@ -66,7 +66,7 @@ describe('TableDataSource', () => {
   });
 
   // Page
-  it('should return page value from provided configuration', () => {
+  it('should return page$ from provided configuration', () => {
     const unsub = '-!';
     const expectedMarbles = 'a';
     const expectedValues = {
@@ -78,7 +78,7 @@ describe('TableDataSource', () => {
     });
   });
 
-  it('should increase page value when calling next page', () => {
+  it('should increase page$ on nextPage', () => {
     const unsub = '---!';
     const expectedMarbles = 'abc';
     const expectedValues = {
@@ -100,7 +100,7 @@ describe('TableDataSource', () => {
     });
   });
 
-  it('should decrease page value when calling previous page, unless page is already 1', () => {
+  it('should decrease page$ on previousPage, unless page is already 1', () => {
     const unsub = '---!';
     const expectedMarbles = 'ab-';
     const expectedValues = {
@@ -121,7 +121,7 @@ describe('TableDataSource', () => {
     });
   });
 
-  it('should return given page value when calling jump to page, or 1 if value is less than 1', () => {
+  it('should update page$ on jumpToPage', () => {
     const unsub = '----!';
     const expectedMarbles = 'abcb';
     const expectedValues = {
@@ -139,6 +139,7 @@ describe('TableDataSource', () => {
         tableDataSource.jumpToPage(4);
       },
       f: (): void => {
+        // Expect minimum value of 1
         tableDataSource.jumpToPage(-1);
       },
     };
@@ -149,8 +150,38 @@ describe('TableDataSource', () => {
     });
   });
 
+  // Sort
+  it('should update sort$', () => {
+    const unsub = '----!';
+    const expectedMarbles = 'abcd';
+    const expectedValues = {
+      a: { direction: SortDirection.asc, column: 'defaultColumn' },
+      b: { direction: SortDirection.desc, column: 'column1' },
+      c: null,
+      d: { direction: SortDirection.asc, column: 'column2' },
+    };
+
+    const triggerMarbles = '-efg';
+    const triggerValues = {
+      e: (): void => {
+        tableDataSource.sort = { direction: SortDirection.desc, column: 'column1' };
+      },
+      f: (): void => {
+        tableDataSource.sort = null;
+      },
+      g: (): void => {
+        tableDataSource.sort = { direction: SortDirection.asc, column: 'column2' };
+      },
+    };
+
+    testScheduler.run(({ expectObservable, cold }: RunHelpers) => {
+      expectObservable(tableDataSource.sort$, unsub).toBe(expectedMarbles, expectedValues);
+      expectObservable(cold(triggerMarbles, triggerValues).pipe(tap((fn: () => void) => fn())));
+    });
+  });
+
   // Pagination parameters
-  it('should return pagination parameters from provided configuration', () => {
+  it('should return paginationParams$ from provided configuration', () => {
     const unsub = '-!';
     const expectedMarbles = 'a';
     const expectedValues = {
@@ -165,7 +196,7 @@ describe('TableDataSource', () => {
     });
   });
 
-  it('should update pagination parameters when changing current page', () => {
+  it('should update paginationParams$ when changing current page', () => {
     const unsub = '-----!';
     const expectedMarbles = '(ab)c';
     const expectedValues = {
@@ -193,7 +224,7 @@ describe('TableDataSource', () => {
     });
   });
 
-  it('should update pagination parameters when changing limit', () => {
+  it('should update paginationParams$ when changing limit', () => {
     const unsub = '-!';
     const expectedMarbles = '(ab)';
     const expectedValues = {
@@ -217,7 +248,7 @@ describe('TableDataSource', () => {
     });
   });
 
-  it('should update pagination parameters when changing pagination strategy', () => {
+  it('should update paginationParams$ when changing pagination strategy', () => {
     const unsub = '------!';
     const expectedMarbles = '(ab)cd';
     const expectedValues = {

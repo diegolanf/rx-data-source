@@ -32,7 +32,7 @@ describe('Interval', () => {
     expect(interval).toBeTruthy();
   });
 
-  it('emit execute$ every second', () => {
+  it('should emit execute$ every second', () => {
     const unsub = '1s - 999ms - 999ms -!';
     const expectedMarbles = '1s a 999ms a 999ms a';
     const expectedValues = {
@@ -44,7 +44,7 @@ describe('Interval', () => {
     });
   });
 
-  it('emit execute$ every second, on refresh action (at 2500 ms) and then again after 1 second', () => {
+  it('should emit execute$ every second, on refresh action (at 2500 ms) and then again after 1 second', () => {
     const unsub = '1s - 999ms - 499ms - 999ms -!';
     const expectedMarbles = '1s a 999ms a 499ms a 999ms a';
     const expectedValues = {
@@ -62,7 +62,7 @@ describe('Interval', () => {
     });
   });
 
-  it('update refresh interval to 200ms halfway through a running interval', () => {
+  it('should update refresh interval to 200ms halfway through a running interval', () => {
     const unsub = '1s - 499ms - 199ms - 199ms -!';
     const expectedMarbles = '1s a 499ms - 199ms a 199ms a';
     const expectedValues = {
@@ -82,7 +82,7 @@ describe('Interval', () => {
     });
   });
 
-  it('only emit execute$ on refresh action if interval is 0', () => {
+  it('should only emit execute$ on refresh action if interval is 0', () => {
     const unsub = '- 2s - 4s -!';
     const expectedMarbles = '- 2s a 4s a';
     const expectedValues = {
