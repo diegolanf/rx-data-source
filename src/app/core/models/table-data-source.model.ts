@@ -288,10 +288,14 @@ export class TableDataSource<T> {
               startWith(0)
             )
           ).pipe(
-            scan((currentPage: number, change: number) => {
-              const newPage = currentPage + change;
-              return newPage <= 0 ? currentPage : newPage;
-            }, jumpToPage)
+            scan(
+              (currentPage: number, change: number) => {
+                const newPage = currentPage + change;
+                return newPage <= 0 ? currentPage : newPage;
+                // Jump to page must be at least 1
+              },
+              jumpToPage >= 1 ? jumpToPage : 1
+            )
           )
         )
       )

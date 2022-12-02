@@ -23,9 +23,13 @@ describe('TableDataSource', () => {
   const data$ = new Subject<number[]>();
 
   beforeEach(() => {
-    dataSourceSpy = jasmine.createSpyObj('DataSource', ['connectSource', 'refresh', 'reset'], {
-      data$: data$,
-    });
+    dataSourceSpy = jasmine.createSpyObj(
+      'DataSource',
+      ['clearData', 'connectSource', 'refresh', 'reset'],
+      {
+        data$: data$,
+      }
+    );
 
     TestBed.configureTestingModule({
       providers: [
@@ -61,6 +65,90 @@ describe('TableDataSource', () => {
     expect(dataSourceSpy.connectSource).toHaveBeenCalled();
   });
 
+  // Page
+  it('should return page value from provided configuration', () => {
+    const unsub = '-!';
+    const expectedMarbles = 'a';
+    const expectedValues = {
+      a: 2,
+    };
+
+    testScheduler.run(({ expectObservable }: RunHelpers) => {
+      expectObservable(tableDataSource.page$, unsub).toBe(expectedMarbles, expectedValues);
+    });
+  });
+
+  it('should increase page value when calling next page', () => {
+    const unsub = '---!';
+    const expectedMarbles = 'abc';
+    const expectedValues = {
+      a: 2,
+      b: 3,
+      c: 4,
+    };
+
+    const triggerMarbles = '-dd';
+    const triggerValues = {
+      d: (): void => {
+        tableDataSource.nextPage();
+      },
+    };
+
+    testScheduler.run(({ expectObservable, cold }: RunHelpers) => {
+      expectObservable(tableDataSource.page$, unsub).toBe(expectedMarbles, expectedValues);
+      expectObservable(cold(triggerMarbles, triggerValues).pipe(tap((fn: () => void) => fn())));
+    });
+  });
+
+  it('should decrease page value when calling previous page, unless page is already 1', () => {
+    const unsub = '---!';
+    const expectedMarbles = 'ab-';
+    const expectedValues = {
+      a: 2,
+      b: 1,
+    };
+
+    const triggerMarbles = '-cc';
+    const triggerValues = {
+      c: (): void => {
+        tableDataSource.previousPage();
+      },
+    };
+
+    testScheduler.run(({ expectObservable, cold }: RunHelpers) => {
+      expectObservable(tableDataSource.page$, unsub).toBe(expectedMarbles, expectedValues);
+      expectObservable(cold(triggerMarbles, triggerValues).pipe(tap((fn: () => void) => fn())));
+    });
+  });
+
+  it('should return given page value when calling jump to page, or 1 if value is less than 1', () => {
+    const unsub = '----!';
+    const expectedMarbles = 'abcb';
+    const expectedValues = {
+      a: 2,
+      b: 1,
+      c: 4,
+    };
+
+    const triggerMarbles = '-def';
+    const triggerValues = {
+      d: (): void => {
+        tableDataSource.jumpToPage(1);
+      },
+      e: (): void => {
+        tableDataSource.jumpToPage(4);
+      },
+      f: (): void => {
+        tableDataSource.jumpToPage(-1);
+      },
+    };
+
+    testScheduler.run(({ expectObservable, cold }: RunHelpers) => {
+      expectObservable(tableDataSource.page$, unsub).toBe(expectedMarbles, expectedValues);
+      expectObservable(cold(triggerMarbles, triggerValues).pipe(tap((fn: () => void) => fn())));
+    });
+  });
+
   // Pagination parameters
   it('should return pagination parameters from provided configuration', () => {
     const unsub = '-!';
@@ -78,21 +166,77 @@ describe('TableDataSource', () => {
   });
 
   it('should update pagination parameters when changing current page', () => {
-    const unsub = '---!';
-    const expectedMarbles = 'abc';
+    const unsub = '-----!';
+    const expectedMarbles = '(ab)c';
     const expectedValues = {
       a: { skip: 30, take: 30 },
       b: { skip: 60, take: 30 },
       c: { skip: 300, take: 30 },
     };
 
-    const triggerMarbles = '-de';
+    const triggerMarbles = 'd---e';
     const triggerValues = {
       d: (): void => {
         tableDataSource.nextPage();
       },
       e: (): void => {
         tableDataSource.jumpToPage(11);
+      },
+    };
+
+    testScheduler.run(({ expectObservable, cold }: RunHelpers) => {
+      expectObservable(tableDataSource.paginationParams$, unsub).toBe(
+        expectedMarbles,
+        expectedValues
+      );
+      expectObservable(cold(triggerMarbles, triggerValues).pipe(tap((fn: () => void) => fn())));
+    });
+  });
+
+  it('should update pagination parameters when changing limit', () => {
+    const unsub = '-!';
+    const expectedMarbles = '(ab)';
+    const expectedValues = {
+      a: { skip: 30, take: 30 },
+      b: { skip: 10, take: 10 },
+    };
+
+    const triggerMarbles = 'c';
+    const triggerValues = {
+      c: (): void => {
+        tableDataSource.limit = 10;
+      },
+    };
+
+    testScheduler.run(({ expectObservable, cold }: RunHelpers) => {
+      expectObservable(tableDataSource.paginationParams$, unsub).toBe(
+        expectedMarbles,
+        expectedValues
+      );
+      expectObservable(cold(triggerMarbles, triggerValues).pipe(tap((fn: () => void) => fn())));
+    });
+  });
+
+  it('should update pagination parameters when changing pagination strategy', () => {
+    const unsub = '------!';
+    const expectedMarbles = '(ab)cd';
+    const expectedValues = {
+      a: { skip: 30, take: 30 },
+      b: { skip: 10, take: 10 },
+      c: undefined,
+      d: { skip: 0, take: 10 },
+    };
+
+    const triggerMarbles = 'e---fg';
+    const triggerValues = {
+      e: (): void => {
+        tableDataSource.limit = false;
+      },
+      f: (): void => {
+        tableDataSource.paginationStrategy = PaginationStrategy.none;
+      },
+      g: (): void => {
+        tableDataSource.paginationStrategy = PaginationStrategy.scroll;
       },
     };
 
