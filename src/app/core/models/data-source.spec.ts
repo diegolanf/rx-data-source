@@ -15,22 +15,6 @@ describe('DataSource', () => {
 
   const execute$ = new Subject<void>();
 
-  const loadingObservablesTests = {
-    source: of(1).pipe(delay(100)),
-    unsub: '1150ms - !',
-
-    /**
-     * Trigger execute$ once after 50ms - before source completes - to interrupt it
-     * and check that firstLoading$ continues emitting true, and again after 1s.
-     */
-    triggerMarbles: '- 49ms d 999ms d',
-    triggerValues: {
-      d: (): void => {
-        execute$.next();
-      },
-    },
-  };
-
   beforeEach(() => {
     intervalSpy = jasmine.createSpyObj('Interval', ['refresh'], {
       execute$: execute$,
@@ -57,7 +41,6 @@ describe('DataSource', () => {
   // Defining source and general behaviour tests
   it('should emit data$ when source is defined and after every interval.execute$', () => {
     let emit = 1;
-    dataSource.source = defer(() => of(emit));
     const unsub = '- 999ms - 999ms -!';
     const expectedMarbles = 'a 999ms b 999ms c';
     const expectedValues = {
@@ -66,9 +49,12 @@ describe('DataSource', () => {
       c: 3,
     };
 
-    const triggerMarbles = '1s d 999ms d';
+    const triggerMarbles = 'd 999ms e 999ms e';
     const triggerValues = {
       d: (): void => {
+        dataSource.source = defer(() => of(emit));
+      },
+      e: (): void => {
         emit++;
         execute$.next();
       },
@@ -81,26 +67,29 @@ describe('DataSource', () => {
   });
 
   it('should connect source with a nested observable (i.e. Observable<Observable<T>>) and emit a value', () => {
-    dataSource.connectSource(of(of(1)));
     const unsub = '-!';
     const expectedMarbles = 'a';
     const expectedValues = {
       a: 1,
     };
 
-    testScheduler.run(({ expectObservable }: RunHelpers) => {
+    const triggerMarbles = 'b';
+    const triggerValues = {
+      b: (): void => {
+        dataSource.connectSource(of(of(1)));
+      },
+    };
+
+    testScheduler.run(({ expectObservable, cold }: RunHelpers) => {
       expectObservable(dataSource.data$, unsub).toBe(expectedMarbles, expectedValues);
+      expectObservable(cold(triggerMarbles, triggerValues).pipe(tap((fn: () => void) => fn())));
     });
   });
 
-  it('should keep listening to active source until it completes and emit a response for each different value', () => {
+  it('should not emit consecutively repeated values from source on data$ observable', () => {
     const unsub = '- 999ms - 999ms - 999ms -!';
-    const sourceMarbles = 'a 999ms a 999ms b 999ms c|';
-
-    /**
-     * Second emission is omitted as value repeats.
-     */
-    const expectedMarbles = 'a 999ms - 999ms b 999ms c';
+    const sourceMarbles = 'a 999ms b 999ms b 999ms c|';
+    const expectedMarbles = 'a 999ms b 999ms - 999ms c';
     const values = { a: 1, b: 2, c: 3 };
 
     testScheduler.run(({ expectObservable, cold }: RunHelpers) => {
@@ -109,8 +98,42 @@ describe('DataSource', () => {
     });
   });
 
+  it('should keep listening to active source until it completes and emit a response for each different value', () => {
+    const unsub = '- 999ms - 999ms - 999ms -!';
+    const sourceMarbles = 'a 999ms b 999ms c 999ms d|';
+    const expectedMarbles = 'a 999ms b 999ms c 999ms d';
+    const values = { a: 1, b: 2, c: 3, d: 4 };
+
+    testScheduler.run(({ expectObservable, cold }: RunHelpers) => {
+      dataSource.source = cold(sourceMarbles, values);
+      expectObservable(dataSource.data$, unsub).toBe(expectedMarbles, values);
+    });
+  });
+
+  it('should emit data$ only after source completes successfully if it is interrupted by an execute$ emission', () => {
+    const unsub = '- 49ms - 99ms -!';
+    const expectedMarbles = '- 49ms - 99ms a';
+    const expectedValues = {
+      a: 1,
+    };
+
+    const triggerMarbles = 'b 49ms c';
+    const triggerValues = {
+      b: (): void => {
+        dataSource.source = of(1).pipe(delay(100));
+      },
+      c: (): void => {
+        execute$.next();
+      },
+    };
+
+    testScheduler.run(({ expectObservable, cold }: RunHelpers) => {
+      expectObservable(dataSource.data$, unsub).toBe(expectedMarbles, expectedValues);
+      expectObservable(cold(triggerMarbles, triggerValues).pipe(tap((fn: () => void) => fn())));
+    });
+  });
+
   it('should emit a response immediately from new source when updating it', () => {
-    dataSource.source = of(1);
     const unsub = '- 999ms -!';
     const expectedMarbles = 'a 999ms b';
     const expectedValues = {
@@ -118,9 +141,12 @@ describe('DataSource', () => {
       b: 2,
     };
 
-    const triggerMarbles = '1s c';
+    const triggerMarbles = 'c 999ms d';
     const triggerValues = {
       c: (): void => {
+        dataSource.source = of(1);
+      },
+      d: (): void => {
         dataSource.source = of(2);
       },
     };
@@ -132,123 +158,105 @@ describe('DataSource', () => {
   });
 
   // Loading observables tests
-  it('should emit data$ only once, after source is interrupted and first completes successfully', () => {
-    dataSource.source = loadingObservablesTests.source;
-
-    /**
-     * Source is interrupted at 50ms due to new execute$ emission.
-     * data$ emits only once since value from source does not change on its second successful emission.
-     */
-    const expectedMarbles = '- 49ms - 99ms c 899ms - 99ms -';
-    const expectedValues = {
-      c: 1,
-    };
-
-    testScheduler.run(({ expectObservable, cold }: RunHelpers) => {
-      expectObservable(dataSource.data$, loadingObservablesTests.unsub).toBe(
-        expectedMarbles,
-        expectedValues
-      );
-      expectObservable(
-        cold(loadingObservablesTests.triggerMarbles, loadingObservablesTests.triggerValues).pipe(
-          tap((fn: () => void) => fn())
-        )
-      );
-    });
-  });
-
   it('should toggle loading$ observable every time source observable is active', () => {
-    dataSource.source = loadingObservablesTests.source;
-
-    /**
-     * Toggles at 50ms - i.e. "(ba)" - due to interruption from first execute$ emission.
-     */
-    const expectedMarbles = 'a 49ms (ba) 96ms b 899ms a 99ms b';
+    const unsub = '- 3s !';
+    const expectedMarbles = '(ba) 96ms b 899ms a 99ms b 899ms a 99ms b 899ms a';
     const expectedValues = {
       a: true,
       b: false,
     };
 
+    const triggerMarbles = 'c 999ms d 999ms d 999ms d';
+    const triggerValues = {
+      c: (): void => {
+        dataSource.source = of(1).pipe(delay(100));
+      },
+      d: (): void => {
+        execute$.next();
+      },
+    };
+
     testScheduler.run(({ expectObservable, cold }: RunHelpers) => {
-      expectObservable(dataSource.loading$, loadingObservablesTests.unsub).toBe(
-        expectedMarbles,
-        expectedValues
-      );
-      expectObservable(
-        cold(loadingObservablesTests.triggerMarbles, loadingObservablesTests.triggerValues).pipe(
-          tap((fn: () => void) => fn())
-        )
-      );
+      expectObservable(dataSource.loading$, unsub).toBe(expectedMarbles, expectedValues);
+      expectObservable(cold(triggerMarbles, triggerValues).pipe(tap((fn: () => void) => fn())));
     });
   });
 
   it('should toggle firstLoading$ observable while source observable is active, but only before data is retrieved for the first time', () => {
-    dataSource.source = loadingObservablesTests.source;
-
+    const unsub = '2500ms - !';
     /**
      * Toggles at 50ms - i.e. "(ba)" - due to interruption from first execute$ emission.
      * No emission after data is retrieved for the first time.
      */
-    const expectedMarbles = 'a 49ms (ba) 96ms b 899ms - 99ms -';
+    const expectedMarbles = '(ba) 46ms (ba) 96ms b 899ms - 999ms -';
     const expectedValues = {
       a: true,
       b: false,
     };
 
+    const triggerMarbles = 'c 49ms d 999ms d 999ms d';
+    const triggerValues = {
+      c: (): void => {
+        dataSource.source = of(1).pipe(delay(100));
+      },
+      d: (): void => {
+        execute$.next();
+      },
+    };
+
     testScheduler.run(({ expectObservable, cold }: RunHelpers) => {
-      expectObservable(dataSource.firstLoading$, loadingObservablesTests.unsub).toBe(
-        expectedMarbles,
-        expectedValues
-      );
-      expectObservable(
-        cold(loadingObservablesTests.triggerMarbles, loadingObservablesTests.triggerValues).pipe(
-          tap((fn: () => void) => fn())
-        )
-      );
+      expectObservable(dataSource.firstLoading$, unsub).toBe(expectedMarbles, expectedValues);
+      expectObservable(cold(triggerMarbles, triggerValues).pipe(tap((fn: () => void) => fn())));
     });
   });
 
   it('should toggle afterFirstLoading$ observable while source observable is active, but only after data is retrieved for the first time', () => {
-    dataSource.source = loadingObservablesTests.source;
-
-    /**
-     * Emits true only when loading after data is retrieved for the first time.
-     */
-    const expectedMarbles = 'b 49ms - 99ms - 899ms a 99ms b';
+    const unsub = '2500ms - !';
+    const expectedMarbles = 'b 49ms - 999ms a 99ms b 899ms a 99ms b';
     const expectedValues = {
       a: true,
       b: false,
     };
 
+    const triggerMarbles = 'c 49ms d 999ms d 999ms d';
+    const triggerValues = {
+      c: (): void => {
+        dataSource.source = of(1).pipe(delay(100));
+      },
+      d: (): void => {
+        execute$.next();
+      },
+    };
+
     testScheduler.run(({ expectObservable, cold }: RunHelpers) => {
-      expectObservable(dataSource.afterFirstLoading$, loadingObservablesTests.unsub).toBe(
-        expectedMarbles,
-        expectedValues
-      );
-      expectObservable(
-        cold(loadingObservablesTests.triggerMarbles, loadingObservablesTests.triggerValues).pipe(
-          tap((fn: () => void) => fn())
-        )
-      );
+      expectObservable(dataSource.afterFirstLoading$, unsub).toBe(expectedMarbles, expectedValues);
+      expectObservable(cold(triggerMarbles, triggerValues).pipe(tap((fn: () => void) => fn())));
     });
   });
 
   // Error observable tests
   it('should emit true on error$ observable if source throws an error', () => {
-    dataSource.source = throwError(() => new Error());
     const unsub = '-!';
-    const expectedMarbles = 'a';
+    const expectedMarbles = '(ab)';
     const expectedValues = {
-      a: true,
+      a: false,
+      b: true,
     };
 
-    testScheduler.run(({ expectObservable }: RunHelpers) => {
+    const triggerMarbles = 'c';
+    const triggerValues = {
+      c: (): void => {
+        dataSource.source = throwError(() => new Error());
+      },
+    };
+
+    testScheduler.run(({ expectObservable, cold }: RunHelpers) => {
       expectObservable(dataSource.error$, unsub).toBe(expectedMarbles, expectedValues);
+      expectObservable(cold(triggerMarbles, triggerValues).pipe(tap((fn: () => void) => fn())));
     });
   });
 
   it('should emit false on error$ observable every time source completes without error', () => {
-    dataSource.source = of(1);
     const unsub = '---!';
     const expectedMarbles = 'aba';
     const expectedValues = {
@@ -256,13 +264,13 @@ describe('DataSource', () => {
       b: true,
     };
 
-    const triggerMarbles = '-cd';
+    const triggerMarbles = 'cdc';
     const triggerValues = {
       c: (): void => {
-        dataSource.source = throwError(() => new Error());
+        dataSource.source = of(1);
       },
       d: (): void => {
-        dataSource.source = of(1);
+        dataSource.source = throwError(() => new Error());
       },
     };
 
@@ -280,7 +288,6 @@ describe('DataSource', () => {
 
   // Clear data
   it('should clear data$ observable on clearData action', () => {
-    dataSource.source = of(1);
     const unsub = '--!';
     const expectedMarbles = 'ab';
     const expectedValues = {
@@ -288,9 +295,12 @@ describe('DataSource', () => {
       b: null,
     };
 
-    const triggerMarbles = '-c';
+    const triggerMarbles = 'cd';
     const triggerValues = {
       c: (): void => {
+        dataSource.source = of(1);
+      },
+      d: (): void => {
         dataSource.clearData();
       },
     };
@@ -303,17 +313,19 @@ describe('DataSource', () => {
 
   // Reset tests
   it('should toggle initialState to true on reset action', () => {
-    dataSource.source = of(1);
-    const unsub = '--!';
-    const expectedMarbles = 'ab';
+    const unsub = '-----!';
+    const expectedMarbles = '(ab)a';
     const expectedValues = {
-      a: false,
-      b: true,
+      a: true,
+      b: false,
     };
 
-    const triggerMarbles = '-c';
+    const triggerMarbles = 'c---d';
     const triggerValues = {
       c: (): void => {
+        dataSource.source = of(1);
+      },
+      d: (): void => {
         dataSource.reset();
       },
     };
@@ -325,7 +337,6 @@ describe('DataSource', () => {
   });
 
   it('should reset data$ to null on reset action', () => {
-    dataSource.source = of(1);
     const unsub = '--!';
     const expectedMarbles = 'ab';
     const expectedValues = {
@@ -333,9 +344,12 @@ describe('DataSource', () => {
       b: null,
     };
 
-    const triggerMarbles = '-c';
+    const triggerMarbles = 'cd';
     const triggerValues = {
       c: (): void => {
+        dataSource.source = of(1);
+      },
+      d: (): void => {
         dataSource.reset();
       },
     };
