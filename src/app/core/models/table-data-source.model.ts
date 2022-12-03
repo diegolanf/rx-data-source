@@ -361,10 +361,13 @@ export class TableDataSource<T> {
 
   /**
    * Update {@link paginationStrategy$ pagination strategy}, and:
-   * - Call {@link DataSource.clearData data source clear data} only when switching from none to scroll, and if {@link limit$ limit}
+   * - Call {@link DataSource.clearData data source clear data} only when switching from 'none' to 'scroll', and if {@link limit$ limit}
    * is currently false; otherwise latest {@link DataSource.data$ data source data$} will be immediately added to {@link rows$ rows},
    * causing new emission to only be appended afterwards. This behaviour is a result of {@link refresh table's refresh}
    * not calling clear data itself, as page will always be 1 while pagination strategy is none.
+   * - Call {@link DataSource.clearData data source clear data} and {@link jumpToPage jump to page} 1 only when switching
+   * from 'scroll' to 'none', and if {@link page$ page} is not 1. This is required since {@link refresh table's refresh}
+   * will not reset page itself, if pagination strategy is 'paginate'.
    * - Trigger {@link refresh table's refresh with force refresh = false}: Force refresh is disabled to avoid table from
    * refreshing when switching between strategies if the action is expected to return the same {@link rows$ rows}.
    *
@@ -377,8 +380,16 @@ export class TableDataSource<T> {
         oldState.paginationStrategy === PaginationStrategy.none &&
         oldState.limit === false &&
         paginationStrategy === PaginationStrategy.scroll
-      )
+      ) {
         this.dataSource.clearData();
+      } else if (
+        oldState.paginationStrategy === PaginationStrategy.scroll &&
+        oldState.page !== 1 &&
+        paginationStrategy === PaginationStrategy.paginate
+      ) {
+        this.dataSource.clearData();
+        this.actions.jumpToPage(1);
+      }
       return {
         paginationStrategy,
       };

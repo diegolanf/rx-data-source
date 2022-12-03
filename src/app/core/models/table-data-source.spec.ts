@@ -72,204 +72,6 @@ describe('TableDataSource', () => {
     expect(dataSourceSpy.connectSource).toHaveBeenCalled();
   });
 
-  // Page
-  it('should return page$ from provided configuration', () => {
-    const unsub = '-!';
-    const expectedMarbles = 'a';
-    const expectedValues = {
-      a: 2,
-    };
-
-    testScheduler.run(({ expectObservable }: RunHelpers) => {
-      expectObservable(tableDataSource.page$, unsub).toBe(expectedMarbles, expectedValues);
-    });
-  });
-
-  it('should increase page$ on nextPage', () => {
-    const unsub = '---!';
-    const expectedMarbles = 'abc';
-    const expectedValues = {
-      a: 2,
-      b: 3,
-      c: 4,
-    };
-
-    const triggerMarbles = '-dd';
-    const triggerValues = {
-      d: (): void => {
-        tableDataSource.nextPage();
-      },
-    };
-
-    testScheduler.run(({ expectObservable, cold }: RunHelpers) => {
-      expectObservable(tableDataSource.page$, unsub).toBe(expectedMarbles, expectedValues);
-      expectObservable(cold(triggerMarbles, triggerValues).pipe(tap((fn: () => void) => fn())));
-    });
-  });
-
-  it('should decrease page$ on previousPage, unless page is already 1', () => {
-    const unsub = '---!';
-    const expectedMarbles = 'ab-';
-    const expectedValues = {
-      a: 2,
-      b: 1,
-    };
-
-    const triggerMarbles = '-cc';
-    const triggerValues = {
-      c: (): void => {
-        tableDataSource.previousPage();
-      },
-    };
-
-    testScheduler.run(({ expectObservable, cold }: RunHelpers) => {
-      expectObservable(tableDataSource.page$, unsub).toBe(expectedMarbles, expectedValues);
-      expectObservable(cold(triggerMarbles, triggerValues).pipe(tap((fn: () => void) => fn())));
-    });
-  });
-
-  it('should update page$ on jumpToPage', () => {
-    const unsub = '----!';
-    const expectedMarbles = 'abcb';
-    const expectedValues = {
-      a: 2,
-      b: 1,
-      c: 4,
-    };
-
-    const triggerMarbles = '-def';
-    const triggerValues = {
-      d: (): void => {
-        tableDataSource.jumpToPage(1);
-      },
-      e: (): void => {
-        tableDataSource.jumpToPage(4);
-      },
-      f: (): void => {
-        // Expect minimum value of 1
-        tableDataSource.jumpToPage(-1);
-      },
-    };
-
-    testScheduler.run(({ expectObservable, cold }: RunHelpers) => {
-      expectObservable(tableDataSource.page$, unsub).toBe(expectedMarbles, expectedValues);
-      expectObservable(cold(triggerMarbles, triggerValues).pipe(tap((fn: () => void) => fn())));
-    });
-  });
-
-  it('should update page$ on scroll if pagination strategy is scroll', () => {
-    const unsub = '----!';
-    const expectedMarbles = 'babc';
-    const expectedValues = {
-      a: 1,
-      b: 2,
-      c: 3,
-    };
-
-    const triggerMarbles = '-dee';
-    const triggerValues = {
-      d: (): void => {
-        tableDataSource.paginationStrategy = PaginationStrategy.scroll;
-      },
-      e: (): void => {
-        tableDataSource.scroll();
-      },
-    };
-
-    testScheduler.run(({ expectObservable, cold }: RunHelpers) => {
-      expectObservable(tableDataSource.page$, unsub).toBe(expectedMarbles, expectedValues);
-      expectObservable(cold(triggerMarbles, triggerValues).pipe(tap((fn: () => void) => fn())));
-    });
-  });
-
-  it('should ignore all page actions if pagination strategy is not paginate', () => {
-    const unsub = '---------!';
-    const expectedMarbles = 'ab-------';
-    const expectedValues = {
-      a: 2,
-      b: 1,
-    };
-
-    const triggerMarbles = '-cefgdefg';
-    const triggerValues = {
-      c: (): void => {
-        tableDataSource.paginationStrategy = PaginationStrategy.none;
-      },
-      d: (): void => {
-        tableDataSource.paginationStrategy = PaginationStrategy.scroll;
-      },
-      e: (): void => {
-        tableDataSource.nextPage();
-      },
-      f: (): void => {
-        tableDataSource.previousPage();
-      },
-      g: (): void => {
-        // Expect minimum value of 1
-        tableDataSource.jumpToPage(5);
-      },
-    };
-
-    testScheduler.run(({ expectObservable, cold }: RunHelpers) => {
-      expectObservable(tableDataSource.page$, unsub).toBe(expectedMarbles, expectedValues);
-      expectObservable(cold(triggerMarbles, triggerValues).pipe(tap((fn: () => void) => fn())));
-    });
-  });
-
-  it('should not scroll if pagination strategy is not scroll', () => {
-    const unsub = '----!';
-    const expectedMarbles = 'a-b-';
-    const expectedValues = {
-      a: 2,
-      b: 1,
-    };
-
-    const triggerMarbles = '-dcd';
-    const triggerValues = {
-      c: (): void => {
-        tableDataSource.paginationStrategy = PaginationStrategy.none;
-      },
-      d: (): void => {
-        tableDataSource.scroll();
-      },
-    };
-
-    testScheduler.run(({ expectObservable, cold }: RunHelpers) => {
-      expectObservable(tableDataSource.page$, unsub).toBe(expectedMarbles, expectedValues);
-      expectObservable(cold(triggerMarbles, triggerValues).pipe(tap((fn: () => void) => fn())));
-    });
-  });
-
-  // Sort
-  it('should update sort$', () => {
-    const unsub = '----!';
-    const expectedMarbles = 'abcd';
-    const expectedValues = {
-      a: { direction: SortDirection.asc, column: 'defaultColumn' },
-      b: { direction: SortDirection.desc, column: 'column1' },
-      c: null,
-      d: { direction: SortDirection.asc, column: 'column2' },
-    };
-
-    const triggerMarbles = '-efg';
-    const triggerValues = {
-      e: (): void => {
-        tableDataSource.sort = { direction: SortDirection.desc, column: 'column1' };
-      },
-      f: (): void => {
-        tableDataSource.sort = null;
-      },
-      g: (): void => {
-        tableDataSource.sort = { direction: SortDirection.asc, column: 'column2' };
-      },
-    };
-
-    testScheduler.run(({ expectObservable, cold }: RunHelpers) => {
-      expectObservable(tableDataSource.sort$, unsub).toBe(expectedMarbles, expectedValues);
-      expectObservable(cold(triggerMarbles, triggerValues).pipe(tap((fn: () => void) => fn())));
-    });
-  });
-
   // Pagination strategy
   it('should return paginationStrategy$ from provided configuration', () => {
     const unsub = '-!';
@@ -415,6 +217,273 @@ describe('TableDataSource', () => {
       expectObservable(cold(triggerMarbles, triggerValues).pipe(tap((fn: () => void) => fn())));
       flush();
       expect(dataSourceSpy.clearData).toHaveBeenCalled();
+    });
+  });
+
+  // Page
+  it('should return page$ from provided configuration', () => {
+    const unsub = '-!';
+    const expectedMarbles = 'a';
+    const expectedValues = {
+      a: 2,
+    };
+
+    testScheduler.run(({ expectObservable }: RunHelpers) => {
+      expectObservable(tableDataSource.page$, unsub).toBe(expectedMarbles, expectedValues);
+    });
+  });
+
+  it('should increase page$ on nextPage', () => {
+    const unsub = '---!';
+    const expectedMarbles = 'abc';
+    const expectedValues = {
+      a: 2,
+      b: 3,
+      c: 4,
+    };
+
+    const triggerMarbles = '-dd';
+    const triggerValues = {
+      d: (): void => {
+        tableDataSource.nextPage();
+      },
+    };
+
+    testScheduler.run(({ expectObservable, cold }: RunHelpers) => {
+      expectObservable(tableDataSource.page$, unsub).toBe(expectedMarbles, expectedValues);
+      expectObservable(cold(triggerMarbles, triggerValues).pipe(tap((fn: () => void) => fn())));
+    });
+  });
+
+  it('should decrease page$ on previousPage, unless page is already 1', () => {
+    const unsub = '---!';
+    const expectedMarbles = 'ab-';
+    const expectedValues = {
+      a: 2,
+      b: 1,
+    };
+
+    const triggerMarbles = '-cc';
+    const triggerValues = {
+      c: (): void => {
+        tableDataSource.previousPage();
+      },
+    };
+
+    testScheduler.run(({ expectObservable, cold }: RunHelpers) => {
+      expectObservable(tableDataSource.page$, unsub).toBe(expectedMarbles, expectedValues);
+      expectObservable(cold(triggerMarbles, triggerValues).pipe(tap((fn: () => void) => fn())));
+    });
+  });
+
+  it('should update page$ on jumpToPage', () => {
+    const unsub = '----!';
+    const expectedMarbles = 'abcb';
+    const expectedValues = {
+      a: 2,
+      b: 1,
+      c: 4,
+    };
+
+    const triggerMarbles = '-def';
+    const triggerValues = {
+      d: (): void => {
+        tableDataSource.jumpToPage(1);
+      },
+      e: (): void => {
+        tableDataSource.jumpToPage(4);
+      },
+      f: (): void => {
+        // Expect minimum value of 1
+        tableDataSource.jumpToPage(-1);
+      },
+    };
+
+    testScheduler.run(({ expectObservable, cold }: RunHelpers) => {
+      expectObservable(tableDataSource.page$, unsub).toBe(expectedMarbles, expectedValues);
+      expectObservable(cold(triggerMarbles, triggerValues).pipe(tap((fn: () => void) => fn())));
+    });
+  });
+
+  it('should jump to page$ 1 when changing pagination strategy to scroll', () => {
+    const unsub = '--!';
+    const expectedMarbles = 'ba';
+    const expectedValues = {
+      a: 1,
+      b: 2,
+    };
+
+    const triggerMarbles = '-c';
+    const triggerValues = {
+      c: (): void => {
+        tableDataSource.paginationStrategy = PaginationStrategy.scroll;
+      },
+    };
+
+    testScheduler.run(({ expectObservable, cold }: RunHelpers) => {
+      expectObservable(tableDataSource.page$, unsub).toBe(expectedMarbles, expectedValues);
+      expectObservable(cold(triggerMarbles, triggerValues).pipe(tap((fn: () => void) => fn())));
+    });
+  });
+
+  it('should jump to page$ 1 when changing pagination strategy to none', () => {
+    const unsub = '--!';
+    const expectedMarbles = 'ba';
+    const expectedValues = {
+      a: 1,
+      b: 2,
+    };
+
+    const triggerMarbles = '-c';
+    const triggerValues = {
+      c: (): void => {
+        tableDataSource.paginationStrategy = PaginationStrategy.none;
+      },
+    };
+
+    testScheduler.run(({ expectObservable, cold }: RunHelpers) => {
+      expectObservable(tableDataSource.page$, unsub).toBe(expectedMarbles, expectedValues);
+      expectObservable(cold(triggerMarbles, triggerValues).pipe(tap((fn: () => void) => fn())));
+    });
+  });
+
+  it('should update page$ on scroll if pagination strategy is scroll', () => {
+    const unsub = '----!';
+    const expectedMarbles = 'babc';
+    const expectedValues = {
+      a: 1,
+      b: 2,
+      c: 3,
+    };
+
+    const triggerMarbles = '-dee';
+    const triggerValues = {
+      d: (): void => {
+        tableDataSource.paginationStrategy = PaginationStrategy.scroll;
+      },
+      e: (): void => {
+        tableDataSource.scroll();
+      },
+    };
+
+    testScheduler.run(({ expectObservable, cold }: RunHelpers) => {
+      expectObservable(tableDataSource.page$, unsub).toBe(expectedMarbles, expectedValues);
+      expectObservable(cold(triggerMarbles, triggerValues).pipe(tap((fn: () => void) => fn())));
+    });
+  });
+
+  it('should jump to page$ 1 when changing pagination strategy to scroll to paginate', () => {
+    const unsub = '------!';
+    const expectedMarbles = '(ba)ba';
+    const expectedValues = {
+      a: 1,
+      b: 2,
+    };
+
+    const triggerMarbles = 'c---de';
+    const triggerValues = {
+      c: (): void => {
+        tableDataSource.paginationStrategy = PaginationStrategy.scroll;
+      },
+      d: (): void => {
+        tableDataSource.scroll();
+      },
+      e: (): void => {
+        tableDataSource.paginationStrategy = PaginationStrategy.paginate;
+      },
+    };
+
+    testScheduler.run(({ expectObservable, cold }: RunHelpers) => {
+      expectObservable(tableDataSource.page$, unsub).toBe(expectedMarbles, expectedValues);
+      expectObservable(cold(triggerMarbles, triggerValues).pipe(tap((fn: () => void) => fn())));
+    });
+  });
+
+  it('should ignore all page actions if pagination strategy is not paginate', () => {
+    const unsub = '---------!';
+    const expectedMarbles = 'ab-------';
+    const expectedValues = {
+      a: 2,
+      b: 1,
+    };
+
+    const triggerMarbles = '-cefgdefg';
+    const triggerValues = {
+      c: (): void => {
+        tableDataSource.paginationStrategy = PaginationStrategy.none;
+      },
+      d: (): void => {
+        tableDataSource.paginationStrategy = PaginationStrategy.scroll;
+      },
+      e: (): void => {
+        tableDataSource.nextPage();
+      },
+      f: (): void => {
+        tableDataSource.previousPage();
+      },
+      g: (): void => {
+        // Expect minimum value of 1
+        tableDataSource.jumpToPage(5);
+      },
+    };
+
+    testScheduler.run(({ expectObservable, cold }: RunHelpers) => {
+      expectObservable(tableDataSource.page$, unsub).toBe(expectedMarbles, expectedValues);
+      expectObservable(cold(triggerMarbles, triggerValues).pipe(tap((fn: () => void) => fn())));
+    });
+  });
+
+  it('should not scroll if pagination strategy is not scroll', () => {
+    const unsub = '----!';
+    const expectedMarbles = 'a-b-';
+    const expectedValues = {
+      a: 2,
+      b: 1,
+    };
+
+    const triggerMarbles = '-dcd';
+    const triggerValues = {
+      c: (): void => {
+        tableDataSource.paginationStrategy = PaginationStrategy.none;
+      },
+      d: (): void => {
+        tableDataSource.scroll();
+      },
+    };
+
+    testScheduler.run(({ expectObservable, cold }: RunHelpers) => {
+      expectObservable(tableDataSource.page$, unsub).toBe(expectedMarbles, expectedValues);
+      expectObservable(cold(triggerMarbles, triggerValues).pipe(tap((fn: () => void) => fn())));
+    });
+  });
+
+  // Sort
+  it('should update sort$', () => {
+    const unsub = '----!';
+    const expectedMarbles = 'abcd';
+    const expectedValues = {
+      a: { direction: SortDirection.asc, column: 'defaultColumn' },
+      b: { direction: SortDirection.desc, column: 'column1' },
+      c: null,
+      d: { direction: SortDirection.asc, column: 'column2' },
+    };
+
+    const triggerMarbles = '-efg';
+    const triggerValues = {
+      e: (): void => {
+        tableDataSource.sort = { direction: SortDirection.desc, column: 'column1' };
+      },
+      f: (): void => {
+        tableDataSource.sort = null;
+      },
+      g: (): void => {
+        tableDataSource.sort = { direction: SortDirection.asc, column: 'column2' };
+      },
+    };
+
+    testScheduler.run(({ expectObservable, cold }: RunHelpers) => {
+      expectObservable(tableDataSource.sort$, unsub).toBe(expectedMarbles, expectedValues);
+      expectObservable(cold(triggerMarbles, triggerValues).pipe(tap((fn: () => void) => fn())));
     });
   });
 
