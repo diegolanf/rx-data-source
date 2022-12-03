@@ -6,6 +6,7 @@ import { RxActionFactory } from '@rx-angular/state/actions';
 import {
   combineLatest,
   distinctUntilChanged,
+  filter,
   map,
   merge,
   Observable,
@@ -90,16 +91,31 @@ interface TableDataSourceActions<T> {
   previousPage: void;
 
   /**
-   * Reset action. Unlike {@link DataSource.reset data source reset},
-   * this action only resets {@link rows$} to an empty array (i.e. {@link TableDataSource table data source}
-   * does not track its own initial state, but relies on the one from its internal {@link DataSource data source}).
+   * Scroll action.
+   */
+  scroll: void;
+
+  /**
+   * Clear rows action.
+   */
+  clearRows: void;
+
+  /**
+   * Refresh action.
+   * - If true, forces refresh.
+   * @see TableDataSource.refresh
+   */
+  refresh: boolean;
+
+  /**
+   * Reset action.
    */
   reset: void;
 
   /**
-   * Scroll action.
+   * Set pagination strategy action.
    */
-  scroll: void;
+  setPaginationStrategy: PaginationStrategy;
 
   /**
    * Set data source action.
@@ -171,6 +187,47 @@ export class TableDataSource<T> {
   public readonly dataSource$: Observable<Observable<T[]>>;
 
   /**
+   * Observable of {@link nextPage} action.
+   * Emits only if {@link paginationStrategy$ pagination strategy} is 'paginate'.
+   */
+  public readonly nextPage$: Observable<void>;
+
+  /**
+   * Observable of {@link previousPage} action.
+   * Emits only if {@link paginationStrategy$ pagination strategy} is 'paginate'.
+   */
+  public readonly previousPage$: Observable<void>;
+
+  /**
+   * Observable of {@link jumpToPage} action.
+   * Unlike {@link nextPage$ next page} and {@link previousPage$ previous page}, jump to page can be
+   * automatically triggered during {@link refresh} and {@link reset} actions, regardless of the current
+   * {@link paginationStrategy$ pagination strategy}.
+   */
+  public readonly jumpToPage$: Observable<number>;
+
+  /**
+   * Observable of {@link scroll} action.
+   * Emits only if {@link paginationStrategy$ pagination strategy} is 'scroll'.
+   */
+  public readonly scroll$: Observable<void>;
+
+  /**
+   * Observable of {@link TableDataSourceActions.clearRows clear rows} action.
+   */
+  public readonly clearRows$: Observable<void>;
+
+  /**
+   * Observable of {@link refresh} action.
+   */
+  public readonly refresh$: Observable<boolean>;
+
+  /**
+   * Observable of {@link reset} action.
+   */
+  public readonly reset$: Observable<void>;
+
+  /**
    * Fallback {@link limit$ limit} for paginate and scroll {@link paginationStrategy$ strategies} if none is already defined.
    * @private
    */
@@ -207,6 +264,30 @@ export class TableDataSource<T> {
     this.scrollStrategy$ = this.paginationStrategy$.pipe(
       map((strategy: PaginationStrategy) => strategy === PaginationStrategy.scroll)
     );
+
+    this.nextPage$ = this.actions.nextPage$.pipe(
+      withLatestFrom(this.paginateStrategy$),
+      filter(([_, paginateStrategy]: [void, boolean]) => paginateStrategy),
+      map(() => undefined)
+    );
+
+    this.previousPage$ = this.actions.previousPage$.pipe(
+      withLatestFrom(this.paginateStrategy$),
+      filter(([_, paginateStrategy]: [void, boolean]) => paginateStrategy),
+      map(() => undefined)
+    );
+
+    this.jumpToPage$ = this.actions.jumpToPage$;
+
+    this.scroll$ = this.actions.scroll$.pipe(
+      withLatestFrom(this.scrollStrategy$),
+      filter(([_, scrollStrategy]: [void, boolean]) => scrollStrategy),
+      map(() => undefined)
+    );
+
+    this.clearRows$ = this.actions.clearRows$;
+    this.refresh$ = this.actions.refresh$;
+    this.reset$ = this.actions.reset$;
 
     /**
      * Combine {@link limit$ }, {@link page$ } and {@link paginationStrategy$ }
@@ -279,15 +360,15 @@ export class TableDataSource<T> {
      */
     this.state.connect(
       'page',
-      this.actions.jumpToPage$.pipe(
+      this.jumpToPage$.pipe(
         startWith(config?.page ?? 1),
         switchMap((jumpToPage: number) =>
           merge(
-            this.actions.nextPage$.pipe(
+            merge(this.scroll$, this.nextPage$).pipe(
               map(() => 1),
               startWith(0)
             ),
-            this.actions.previousPage$.pipe(
+            this.previousPage$.pipe(
               map(() => -1),
               startWith(0)
             )
@@ -313,7 +394,7 @@ export class TableDataSource<T> {
      */
     this.state.connect(
       'rows',
-      this.actions.reset$.pipe(
+      this.clearRows$.pipe(
         map(() => []),
         startWith([]),
         switchMap((reset: never[]) =>
@@ -332,22 +413,42 @@ export class TableDataSource<T> {
         )
       )
     );
-  }
 
-  /**
-   * True if current value of {@link TableDataSourceState.paginationStrategy pagination strategy state} is 'paginate'.
-   * @private
-   */
-  private get paginateStrategy(): boolean {
-    return this.state.get('paginationStrategy') === PaginationStrategy.paginate;
-  }
+    /**
+     * Define effects of {@link refresh$} action.
+     * @see refresh
+     */
+    this.state.hold(
+      this.refresh$.pipe(withLatestFrom(this.page$, this.paginationStrategy$)),
+      ([forceRefresh, page, paginationStrategy]: [boolean, number, PaginationStrategy]) => {
+        if (paginationStrategy !== PaginationStrategy.paginate && page !== 1) {
+          // Only clearData as jump to page will trigger a refresh
+          this.dataSource.clearData();
+          this.actions.jumpToPage(1);
+        } else if (forceRefresh) {
+          this.dataSource.refresh();
+        }
+        if (paginationStrategy === PaginationStrategy.scroll) this.actions.clearRows();
+      }
+    );
 
-  /**
-   * True if current value of {@link TableDataSourceState.paginationStrategy pagination strategy state} is 'scroll'.
-   * @private
-   */
-  private get scrollStrategy(): boolean {
-    return this.state.get('paginationStrategy') === PaginationStrategy.scroll;
+    /**
+     * Define effects of {@link reset$} action.
+     * @see reset
+     */
+    this.state.hold(
+      this.reset$.pipe(withLatestFrom(this.page$, this.scrollStrategy$)),
+      ([_, page, scrollStrategy]: [void, number, boolean]) => {
+        if (page !== 1) {
+          // Only reset, jump to page will trigger a refresh
+          this.dataSource.reset();
+          this.actions.jumpToPage(1);
+        } else {
+          this.dataSource.resetAndRefresh();
+        }
+        if (scrollStrategy) this.actions.clearRows();
+      }
+    );
   }
 
   /**
@@ -395,7 +496,7 @@ export class TableDataSource<T> {
       };
     });
 
-    this.refresh(false);
+    this.actions.refresh(false);
   }
 
   /**
@@ -419,33 +520,40 @@ export class TableDataSource<T> {
   }
 
   /**
-   * Jump to specified {@link page$ page}.
+   * Load next {@link page$ page} if pagination strategy is set to 'paginate'.
+   */
+  public nextPage(): void {
+    this.actions.nextPage();
+  }
+
+  /**
+   * Load previous {@link page$ page} if pagination strategy is set to 'paginate'.
+   */
+  public previousPage(): void {
+    this.actions.previousPage();
+  }
+
+  /**
+   * Jump to specified {@link page$ page} if pagination strategy is set to 'paginate'.
    *
    * @param page
    */
   public jumpToPage(page: number): void {
-    if (this.paginateStrategy) this.actions.jumpToPage(page);
+    /**
+     * Unlike {@link nextPage} or {@link previousPage}, requires pagination strategy check
+     * as jumpToPage action is triggered inside {@link TableDataSource} to reset page to 1
+     * (e.g. during {@link refresh} and {@link reset}).
+     */
+    if (this.state.get('paginationStrategy') === PaginationStrategy.paginate)
+      this.actions.jumpToPage(page);
   }
 
   /**
-   * Load next {@link page$ page}.
-   */
-  public nextPage(): void {
-    if (this.paginateStrategy) this.actions.nextPage();
-  }
-
-  /**
-   * Load previous {@link page$ page}.
-   */
-  public previousPage(): void {
-    if (this.paginateStrategy) this.actions.previousPage();
-  }
-
-  /**
-   * Load next set of {@link rows$ rows} and concatenate it to the existing ones.
+   * Load next set of {@link rows$ rows} and concatenate it to the existing ones
+   * if pagination strategy is set to 'scroll'.
    */
   public scroll(): void {
-    if (this.scrollStrategy) this.actions.nextPage();
+    this.actions.scroll();
   }
 
   /**
@@ -458,20 +566,13 @@ export class TableDataSource<T> {
    * call internal {@link DataSource.refresh data source refresh}.
    *
    * Additionally:
-   * - If {@link paginationStrategy$ pagination strategy} is scroll: Call {@link TableDataSourceActions.reset reset} action
+   * - If {@link paginationStrategy$ pagination strategy} is scroll: Call {@link TableDataSourceActions.clearRows clear rows} action
    * to reset {@link rows$} accumulator back to an empty array.
    *
    * @param forceRefresh
    */
   public refresh(forceRefresh: boolean = true): void {
-    if (!this.paginateStrategy && this.state.get('page') !== 1) {
-      // Only clearData as jump to page will trigger a refresh
-      this.dataSource.clearData();
-      this.actions.jumpToPage(1);
-    } else if (forceRefresh) {
-      this.dataSource.refresh();
-    }
-    if (this.scrollStrategy) this.actions.reset();
+    this.actions.refresh(forceRefresh);
   }
 
   /**
@@ -481,17 +582,11 @@ export class TableDataSource<T> {
    * - Else, call internal {@link DataSource.resetAndRefresh data source reset and refresh}.
    *
    * Additionally:
-   * - If {@link paginationStrategy$ pagination strategy} is scroll: Call {@link TableDataSourceActions.reset reset} action
+   * - If {@link paginationStrategy$ pagination strategy} is scroll:
+   * Call {@link TableDataSourceActions.clearRows clear rows} action
    * to reset {@link rows$} accumulator back to an empty array.
    */
   public reset(): void {
-    if (this.state.get('page') !== 1) {
-      // Only reset, jump to page will trigger a refresh
-      this.dataSource.reset();
-      this.actions.jumpToPage(1);
-    } else {
-      this.dataSource.resetAndRefresh();
-    }
-    if (this.scrollStrategy) this.actions.reset();
+    this.actions.reset();
   }
 }
