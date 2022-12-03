@@ -47,6 +47,9 @@
   </section>
   <mat-divider></mat-divider>
   <section class="flex flex-row items-center justify-center overflow-hidden py-1 px-2.5 gap-1">
+    <button mat-icon-button (click)="tableDataSource?.refresh()" matTooltip="Refresh table">
+      <mat-icon>refresh</mat-icon>
+    </button>
     <button mat-icon-button (click)="tableDataSource?.reset()" matTooltip="Reset table">
       <mat-icon>clear_all</mat-icon>
     </button>

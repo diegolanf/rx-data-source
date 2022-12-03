@@ -4,7 +4,6 @@ import { isNumber } from '@app/shared/utils/validate.utils';
 import { RxState } from '@rx-angular/state';
 import { RxActionFactory } from '@rx-angular/state/actions';
 import {
-  asyncScheduler,
   combineLatest,
   distinctUntilChanged,
   map,
@@ -336,11 +335,19 @@ export class TableDataSource<T> {
   }
 
   /**
-   * Current value of {@link TableDataSourceState.paginationStrategy pagination strategy state}.
+   * True if current value of {@link TableDataSourceState.paginationStrategy pagination strategy state} is 'paginate'.
    * @private
    */
   private get paginateStrategy(): boolean {
     return this.state.get('paginationStrategy') === PaginationStrategy.paginate;
+  }
+
+  /**
+   * True if current value of {@link TableDataSourceState.paginationStrategy pagination strategy state} is 'scroll'.
+   * @private
+   */
+  private get scrollStrategy(): boolean {
+    return this.state.get('paginationStrategy') === PaginationStrategy.scroll;
   }
 
   /**
@@ -354,10 +361,12 @@ export class TableDataSource<T> {
 
   /**
    * Update {@link paginationStrategy$ pagination strategy}, and:
-   * - Call {@link DataSource.clearData data source clear data} when switching from none to scroll, and if {@link limit$ limit}
+   * - Call {@link DataSource.clearData data source clear data} only when switching from none to scroll, and if {@link limit$ limit}
    * is currently false; otherwise latest {@link DataSource.data$ data source data$} will be immediately added to {@link rows$ rows},
-   * causing new emission to only be appended afterwards.
-   * - Trigger {@link refresh table's refresh}.
+   * causing new emission to only be appended afterwards. This behaviour is a result of {@link refresh table's refresh}
+   * not calling clear data itself, as page will always be 1 while pagination strategy is none.
+   * - Trigger {@link refresh table's refresh with force refresh = false}: Force refresh is disabled to avoid table from
+   * refreshing when switching between strategies if the action is expected to return the same {@link rows$ rows}.
    *
    * @param paginationStrategy
    */
@@ -425,40 +434,44 @@ export class TableDataSource<T> {
    * Load next set of {@link rows$ rows} and concatenate it to the existing ones.
    */
   public scroll(): void {
-    if (this.state.get('paginationStrategy') === PaginationStrategy.scroll) this.actions.nextPage();
+    if (this.scrollStrategy) this.actions.nextPage();
   }
 
   /**
    * Refresh table:
-   * - If {@link page$ page} !== 1, {@link jumpToPage jump to page}  1 (which will trigger a refresh)
-   * and call internal {@link DataSource.clearData data source clear data}.
+   * - If {@link paginationStrategy$ pagination strategy} is not paginate and {@link page$ page} !== 1,
+   * {@link jumpToPage jump to page}  1 (which will trigger a refresh) and call internal
+   * {@link DataSource.clearData data source clear data}. This behavior is not desired for paginate strategy in order to
+   * simply refresh current page.
    * - Else if {@link page$ page} === 1 and forceRefresh === true (default = true),
    * call internal {@link DataSource.refresh data source refresh}.
-   * - Always: Call {@link TableDataSourceActions.reset reset} action.
+   *
+   * Additionally:
+   * - If {@link paginationStrategy$ pagination strategy} is scroll: Call {@link TableDataSourceActions.reset reset} action
+   * to reset {@link rows$} accumulator back to an empty array.
    *
    * @param forceRefresh
    */
   public refresh(forceRefresh: boolean = true): void {
-    if (this.state.get('page') !== 1) {
+    if (!this.paginateStrategy && this.state.get('page') !== 1) {
       // Only clearData as jump to page will trigger a refresh
       this.dataSource.clearData();
       this.actions.jumpToPage(1);
     } else if (forceRefresh) {
       this.dataSource.refresh();
     }
-
-    /**
-     * Ensure {@link rows$} accumulator reset - clearing rows back to empty array - occurs after dataSource.
-     */
-    asyncScheduler.schedule(() => this.actions.reset());
+    if (this.scrollStrategy) this.actions.reset();
   }
 
   /**
    * Reset table:
    * - If {@link page$ page} !== 1, {@link jumpToPage jump to page}  1 (which will trigger a refresh)
    * and call internal {@link DataSource.reset data source reset}.
-   * - If {@link page$ page} === 1, call internal {@link DataSource.resetAndRefresh data source reset and refresh}.
-   * - Always: Call {@link TableDataSourceActions.reset reset} action.
+   * - Else, call internal {@link DataSource.resetAndRefresh data source reset and refresh}.
+   *
+   * Additionally:
+   * - If {@link paginationStrategy$ pagination strategy} is scroll: Call {@link TableDataSourceActions.reset reset} action
+   * to reset {@link rows$} accumulator back to an empty array.
    */
   public reset(): void {
     if (this.state.get('page') !== 1) {
@@ -468,10 +481,6 @@ export class TableDataSource<T> {
     } else {
       this.dataSource.resetAndRefresh();
     }
-
-    /**
-     * Ensure {@link rows$} accumulator reset - clearing rows back to empty array - occurs after dataSource.
-     */
-    asyncScheduler.schedule(() => this.actions.reset());
+    if (this.scrollStrategy) this.actions.reset();
   }
 }
