@@ -399,6 +399,25 @@ describe('TableDataSource', () => {
     });
   });
 
+  it('should call dataSource.clearData if pagination strategy changes from none to scroll and limit is false', () => {
+    const triggerMarbles = 'ab';
+    const triggerValues = {
+      a: (): void => {
+        tableDataSource.paginationStrategy = PaginationStrategy.none;
+        tableDataSource.limit = false;
+      },
+      b: (): void => {
+        tableDataSource.paginationStrategy = PaginationStrategy.scroll;
+      },
+    };
+
+    testScheduler.run(({ expectObservable, cold, flush }: RunHelpers) => {
+      expectObservable(cold(triggerMarbles, triggerValues).pipe(tap((fn: () => void) => fn())));
+      flush();
+      expect(dataSourceSpy.clearData).toHaveBeenCalled();
+    });
+  });
+
   // Pagination parameters
   it('should return paginationParams$ from provided configuration', () => {
     const unsub = '-!';

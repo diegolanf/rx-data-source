@@ -203,13 +203,11 @@ export class DataSource<T> {
           indicate(this.state), // Set loading in state to true while dataSource is active
           takeUntil(this.interval.execute$), // Stop if new execution takes place
           catchError(() => {
-            this.state.set({ error: true });
-            if (this.state.get('initialState')) this.state.set({ initialState: false });
+            this.state.set({ error: true, initialState: false });
             return EMPTY;
           }),
           map((response: T) => {
-            if (this.state.get('error')) this.state.set({ error: false });
-            if (this.state.get('initialState')) this.state.set({ initialState: false });
+            this.state.set({ error: false, initialState: false });
             return response;
           })
         )

@@ -11,7 +11,6 @@ import {
   merge,
   Observable,
   scan,
-  skip,
   startWith,
   switchMap,
   withLatestFrom,
@@ -92,8 +91,9 @@ interface TableDataSourceActions<T> {
   previousPage: void;
 
   /**
-   * Reset action:
-   * - Sets {@link rows$} to an empty array.
+   * Reset action. Unlike {@link DataSource.reset data source reset},
+   * this action only resets {@link rows$} to an empty array (i.e. {@link TableDataSource table data source}
+   * does not track its own initial state, but relies on the one from its internal {@link DataSource data source}).
    */
   reset: void;
 
@@ -268,6 +268,11 @@ export class TableDataSource<T> {
     );
 
     /**
+     * Connect {@link DataSourceState.dataSource dataSource's source} with {@link dataSource$} observable.
+     */
+    this.dataSource.connectSource(this.dataSource$);
+
+    /**
      * Connect {@link TableDataSourceState.page page state} to {@link jumpToPage}, {@link nextPage} and {@link previousPage} actions.
      * - On jumpToPage, resets scan operator and uses emitted value as seed.
      * - On nextPage, adds 1 to currentPage accumulator.
@@ -302,11 +307,6 @@ export class TableDataSource<T> {
     );
 
     /**
-     * Connect {@link DataSourceState.dataSource dataSource's source} with {@link dataSource$} observable.
-     */
-    this.dataSource.connectSource(this.dataSource$);
-
-    /**
      * Connect {@link TableDataSourceState.rows rows state} with {@link DataSource.data$ dataSource's data$}.
      * - Set back to empty array on {@link reset} action.
      * - Appends new {@link DataSource.data$ data$} to the {@link rows$ rows} array if {@link paginationStrategy$} is set to scroll,
@@ -333,11 +333,6 @@ export class TableDataSource<T> {
         )
       )
     );
-
-    /**
-     * Trigger {@link reset} whenever {@link paginationStrategy$} changes after its initial value.
-     */
-    this.state.hold(this.paginationStrategy$.pipe(skip(1)), () => this.refresh(false));
   }
 
   /**
@@ -346,6 +341,50 @@ export class TableDataSource<T> {
    */
   private get paginateStrategy(): boolean {
     return this.state.get('paginationStrategy') === PaginationStrategy.paginate;
+  }
+
+  /**
+   * Update page's row {@link limit$ limit}.
+   *
+   * @param limit
+   */
+  public set limit(limit: number | boolean) {
+    this.state.set({ limit });
+  }
+
+  /**
+   * Update {@link paginationStrategy$ pagination strategy}, and:
+   * - Call {@link DataSource.clearData data source clear data} when switching from none to scroll, and if {@link limit$ limit}
+   * is currently false; otherwise latest {@link DataSource.data$ data source data$} will be immediately added to {@link rows$ rows},
+   * causing new emission to only be appended afterwards.
+   * - Trigger {@link refresh table's refresh}.
+   *
+   * @param paginationStrategy
+   */
+  public set paginationStrategy(paginationStrategy: PaginationStrategy) {
+    this.state.set((oldState: TableDataSourceState<T>) => {
+      // Clear data when switching from strategy none to scroll
+      if (
+        oldState.paginationStrategy === PaginationStrategy.none &&
+        oldState.limit === false &&
+        paginationStrategy === PaginationStrategy.scroll
+      )
+        this.dataSource.clearData();
+      return {
+        paginationStrategy,
+      };
+    });
+
+    this.refresh(false);
+  }
+
+  /**
+   * Update {@link sort$ sort} column and direction.
+   *
+   * @param sort
+   */
+  public set sort(sort: Sort | null) {
+    this.state.set({ sort });
   }
 
   /**
@@ -360,45 +399,12 @@ export class TableDataSource<T> {
   }
 
   /**
-   * Update page's row {@link limit$ limit}.
+   * Jump to specified {@link page$ page}.
    *
-   * @param limit
+   * @param page
    */
-  public set limit(limit: number | boolean) {
-    this.state.set({ limit });
-  }
-
-  /**
-   * Update {@link paginationStrategy$ pagination strategy}.
-   *
-   * @param paginationStrategy
-   */
-  public set paginationStrategy(paginationStrategy: PaginationStrategy) {
-    // Clear data when switching from strategy none to scroll
-    if (
-      this.state.get('paginationStrategy') === PaginationStrategy.none &&
-      paginationStrategy === PaginationStrategy.scroll &&
-      this.state.get('limit') === false
-    )
-      this.dataSource.reset();
-
-    this.state.set({ paginationStrategy });
-  }
-
-  /**
-   * Update {@link sort$ sort} column and direction.
-   *
-   * @param sort
-   */
-  public set sort(sort: Sort | null) {
-    this.state.set({ sort });
-  }
-
-  /**
-   * Load next set of {@link rows$ rows} and concatenate it to the existing ones.
-   */
-  public scroll(): void {
-    if (this.state.get('paginationStrategy') === PaginationStrategy.scroll) this.actions.nextPage();
+  public jumpToPage(page: number): void {
+    if (this.paginateStrategy) this.actions.jumpToPage(page);
   }
 
   /**
@@ -416,12 +422,10 @@ export class TableDataSource<T> {
   }
 
   /**
-   * Jump to specified {@link page$ page}.
-   *
-   * @param page
+   * Load next set of {@link rows$ rows} and concatenate it to the existing ones.
    */
-  public jumpToPage(page: number): void {
-    if (this.paginateStrategy) this.actions.jumpToPage(page);
+  public scroll(): void {
+    if (this.state.get('paginationStrategy') === PaginationStrategy.scroll) this.actions.nextPage();
   }
 
   /**
@@ -443,7 +447,9 @@ export class TableDataSource<T> {
       this.dataSource.refresh();
     }
 
-    // Ensure accumulator reset occurs after dataSource.
+    /**
+     * Ensure {@link rows$} accumulator reset - clearing rows back to empty array - occurs after dataSource.
+     */
     asyncScheduler.schedule(() => this.actions.reset());
   }
 
@@ -463,7 +469,9 @@ export class TableDataSource<T> {
       this.dataSource.resetAndRefresh();
     }
 
-    // Ensure accumulator reset occurs after dataSource.
+    /**
+     * Ensure {@link rows$} accumulator reset - clearing rows back to empty array - occurs after dataSource.
+     */
     asyncScheduler.schedule(() => this.actions.reset());
   }
 }
