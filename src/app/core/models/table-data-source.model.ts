@@ -415,6 +415,40 @@ export class TableDataSource<T> {
     );
 
     /**
+     * Connect {@link TableDataSourceState.paginationStrategy pagination strategy state}
+     * with {@link TableDataSourceActions.setPaginationStrategy set pagination strategy action}.
+     * @see paginationStrategy
+     */
+    this.state.connect(
+      this.actions.setPaginationStrategy$,
+      (oldState: TableDataSourceState<T>, paginationStrategy: PaginationStrategy) => {
+        if (
+          oldState.paginationStrategy === PaginationStrategy.none &&
+          oldState.limit === false &&
+          paginationStrategy === PaginationStrategy.scroll
+        ) {
+          this.dataSource.clearData();
+        } else if (
+          oldState.paginationStrategy === PaginationStrategy.scroll &&
+          oldState.page !== 1 &&
+          paginationStrategy === PaginationStrategy.paginate
+        ) {
+          this.dataSource.clearData();
+          this.actions.jumpToPage(1);
+        }
+        return {
+          paginationStrategy,
+        };
+      }
+    );
+
+    /**
+     * Define additional effects of {@link TableDataSourceActions.setPaginationStrategy set pagination strategy action}.
+     * @see paginationStrategy
+     */
+    this.state.hold(this.actions.setPaginationStrategy$, () => this.actions.refresh(false));
+
+    /**
      * Define effects of {@link refresh$} action.
      * @see refresh
      */
@@ -469,34 +503,15 @@ export class TableDataSource<T> {
    * - Call {@link DataSource.clearData data source clear data} and {@link jumpToPage jump to page} 1 only when switching
    * from 'scroll' to 'none', and if {@link page$ page} is not 1. This is required since {@link refresh table's refresh}
    * will not reset page itself, if pagination strategy is 'paginate'.
+   *
+   * Afterwards, as effect:
    * - Trigger {@link refresh table's refresh with force refresh = false}: Force refresh is disabled to avoid table from
    * refreshing when switching between strategies if the action is expected to return the same {@link rows$ rows}.
    *
    * @param paginationStrategy
    */
   public set paginationStrategy(paginationStrategy: PaginationStrategy) {
-    this.state.set((oldState: TableDataSourceState<T>) => {
-      // Clear data when switching from strategy none to scroll
-      if (
-        oldState.paginationStrategy === PaginationStrategy.none &&
-        oldState.limit === false &&
-        paginationStrategy === PaginationStrategy.scroll
-      ) {
-        this.dataSource.clearData();
-      } else if (
-        oldState.paginationStrategy === PaginationStrategy.scroll &&
-        oldState.page !== 1 &&
-        paginationStrategy === PaginationStrategy.paginate
-      ) {
-        this.dataSource.clearData();
-        this.actions.jumpToPage(1);
-      }
-      return {
-        paginationStrategy,
-      };
-    });
-
-    this.actions.refresh(false);
+    this.actions.setPaginationStrategy(paginationStrategy);
   }
 
   /**
