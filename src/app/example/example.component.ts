@@ -33,7 +33,7 @@ import { Observable } from 'rxjs';
 })
 export class ExampleComponent {
   constructor(
-    private apiService: ApiService,
+    private readonly apiService: ApiService,
     public dataSource: DataSource<number>,
     public tableDataSource: TableDataSource<number>
   ) {

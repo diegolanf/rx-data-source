@@ -237,9 +237,9 @@ export class TableDataSource<T> {
 
   constructor(
     @Optional() @Inject(TABLE_DATA_SOURCE_CONFIG) config: Partial<TableDataSourceConfig> | null,
-    private dataSource: DataSource<T[]>,
-    private factory: RxActionFactory<TableDataSourceActions<T>>,
-    private state: RxState<TableDataSourceState<T>>
+    private readonly dataSource: DataSource<T[]>,
+    private readonly factory: RxActionFactory<TableDataSourceActions<T>>,
+    private readonly state: RxState<TableDataSourceState<T>>
   ) {
     /**
      * Set initial {@link TableDataSourceState state} based on provided or {@link defaultTableDataSourceConfig default} config.

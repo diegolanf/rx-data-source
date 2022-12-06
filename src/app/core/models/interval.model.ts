@@ -70,8 +70,8 @@ export class Interval {
 
   constructor(
     @Optional() @Inject(INTERVAL_CONFIG) config: IntervalState | null,
-    private factory: RxActionFactory<IntervalActions>,
-    private state: RxState<IntervalState>
+    private readonly factory: RxActionFactory<IntervalActions>,
+    private readonly state: RxState<IntervalState>
   ) {
     /**
      * Set initial {@link IntervalState state} based on provided or {@link defaultIntervalConfig default} config.
