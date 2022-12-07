@@ -169,8 +169,8 @@ export class DataSource<T> {
 
   constructor(
     private readonly factory: RxActionFactory<DataSourceActions>,
-    private readonly interval: Interval,
-    private readonly state: RxState<DataSourceState<T>>
+    private readonly state: RxState<DataSourceState<T>>,
+    public readonly interval: Interval
   ) {
     /**
      * Set {@link initDataSourceState initial state}.

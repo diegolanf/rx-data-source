@@ -149,7 +149,7 @@ describe('TableDataSource', () => {
 
   it('should update paginateStrategy$ when changing pagination strategy', () => {
     const unsub = '---!';
-    const expectedMarbles = 'baa';
+    const expectedMarbles = 'ba-';
     const expectedValues = {
       a: false,
       b: true,
@@ -176,7 +176,7 @@ describe('TableDataSource', () => {
 
   it('should update scrollStrategy$ when changing pagination strategy', () => {
     const unsub = '---!';
-    const expectedMarbles = 'aab';
+    const expectedMarbles = 'a-b';
     const expectedValues = {
       a: false,
       b: true,

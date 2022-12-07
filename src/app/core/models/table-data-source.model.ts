@@ -237,9 +237,9 @@ export class TableDataSource<T> {
 
   constructor(
     @Optional() @Inject(TABLE_DATA_SOURCE_CONFIG) config: Partial<TableDataSourceConfig> | null,
-    private readonly dataSource: DataSource<T[]>,
     private readonly factory: RxActionFactory<TableDataSourceActions<T>>,
-    private readonly state: RxState<TableDataSourceState<T>>
+    private readonly state: RxState<TableDataSourceState<T>>,
+    public readonly dataSource: DataSource<T[]>
   ) {
     /**
      * Set initial {@link TableDataSourceState state} based on provided or {@link defaultTableDataSourceConfig default} config.
@@ -251,18 +251,24 @@ export class TableDataSource<T> {
       sort: config?.sort,
     });
 
-    this.empty$ = this.rows$.pipe(map((rows: T[]) => rows.length === 0));
+    this.empty$ = this.rows$.pipe(
+      map((rows: T[]) => rows.length === 0),
+      distinctUntilChanged()
+    );
 
     this.noPaginationStrategy$ = this.paginationStrategy$.pipe(
-      map((strategy: PaginationStrategy) => strategy === PaginationStrategy.none)
+      map((strategy: PaginationStrategy) => strategy === PaginationStrategy.none),
+      distinctUntilChanged()
     );
 
     this.paginateStrategy$ = this.paginationStrategy$.pipe(
-      map((strategy: PaginationStrategy) => strategy === PaginationStrategy.paginate)
+      map((strategy: PaginationStrategy) => strategy === PaginationStrategy.paginate),
+      distinctUntilChanged()
     );
 
     this.scrollStrategy$ = this.paginationStrategy$.pipe(
-      map((strategy: PaginationStrategy) => strategy === PaginationStrategy.scroll)
+      map((strategy: PaginationStrategy) => strategy === PaginationStrategy.scroll),
+      distinctUntilChanged()
     );
 
     this.nextPage$ = this.actions.nextPage$.pipe(
