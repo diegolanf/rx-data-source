@@ -4,6 +4,7 @@ import { isNumber } from '@app/shared/utils/validate.utils';
 import { RxState } from '@rx-angular/state';
 import { RxActionFactory } from '@rx-angular/state/actions';
 import {
+  asapScheduler,
   combineLatest,
   distinctUntilChanged,
   filter,
@@ -486,7 +487,8 @@ export class TableDataSource<T> {
         } else {
           this.dataSource.resetAndRefresh();
         }
-        if (scrollStrategy) this.actions.clearRows();
+        // Scheduled to ensure data source reset takes place beforehand
+        if (scrollStrategy) asapScheduler.schedule(() => this.actions.clearRows());
       }
     );
   }

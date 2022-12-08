@@ -874,34 +874,4 @@ describe('TableDataSource', () => {
       expect(dataSourceSpy.resetAndRefresh).toHaveBeenCalled();
     });
   });
-
-  it('should clear rows$ accumulator on reset if pagination strategy is scroll', () => {
-    const unsub = '---!';
-    const expectedMarbles = 'abc';
-    const expectedValues = {
-      a: [1, 2, 3],
-      b: [1, 2, 3, 4, 5, 6],
-      c: [1, 2, 3],
-    };
-
-    const triggerMarbles = 'def';
-    const triggerValues = {
-      d: (): void => {
-        tableDataSource.paginationStrategy = PaginationStrategy.scroll;
-        data$.next([1, 2, 3]);
-      },
-      e: (): void => {
-        data$.next([4, 5, 6]);
-      },
-      f: (): void => {
-        tableDataSource.reset();
-        data$.next([1, 2, 3]);
-      },
-    };
-
-    testScheduler.run(({ expectObservable, cold }: RunHelpers) => {
-      expectObservable(tableDataSource.rows$, unsub).toBe(expectedMarbles, expectedValues);
-      expectObservable(cold(triggerMarbles, triggerValues).pipe(tap((fn: () => void) => fn())));
-    });
-  });
 });
