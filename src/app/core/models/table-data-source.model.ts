@@ -114,14 +114,19 @@ interface TableDataSourceActions<T> {
   reset: void;
 
   /**
+   * Set data source action.
+   */
+  setDataSource: (params: HttpParams) => Observable<T[]>;
+
+  /**
    * Set pagination strategy action.
    */
   setPaginationStrategy: PaginationStrategy;
 
   /**
-   * Set data source action.
+   * Set sort action.
    */
-  setDataSource: (params: HttpParams) => Observable<T[]>;
+  setSort: Sort | null;
 }
 
 /**
@@ -456,6 +461,24 @@ export class TableDataSource<T> {
     this.state.hold(this.actions.setPaginationStrategy$, () => this.actions.refresh(false));
 
     /**
+     * Define effects of {@link TableDataSourceActions.setSort set sort action}.
+     * @see sort
+     */
+    this.state.hold(
+      this.actions.setSort$.pipe(withLatestFrom(this.scrollStrategy$, this.page$)),
+      ([sort, scrollStrategy, page]: [Sort | null, boolean, number]) => {
+        if (scrollStrategy) {
+          this.dataSource.clearData();
+          if (page !== 1) this.actions.jumpToPage(1);
+
+          // Scheduled to ensure data source clear data takes place beforehand
+          asapScheduler.schedule(() => this.actions.clearRows());
+        }
+        this.state.set({ sort });
+      }
+    );
+
+    /**
      * Define effects of {@link refresh$} action.
      * @see refresh
      */
@@ -470,7 +493,7 @@ export class TableDataSource<T> {
           if (paginationStrategy === PaginationStrategy.scroll) this.dataSource.clearData();
           this.dataSource.refresh();
         }
-        // Scheduled to ensure data source reset takes place beforehand
+        // Scheduled to ensure data source clear data takes place beforehand
         if (paginationStrategy === PaginationStrategy.scroll)
           asapScheduler.schedule(() => this.actions.clearRows());
       }
@@ -528,10 +551,14 @@ export class TableDataSource<T> {
   /**
    * Update {@link sort$ sort} column and direction.
    *
+   * Additionally:
+   * - If {@link paginationStrategy$ pagination strategy} is scroll, call {@link TableDataSourceActions.clearRows clear rows} action
+   * to reset {@link rows$} accumulator back to an empty array, and {@link jumpToPage jump to page} 1 if {@link page$ page} !== 1.
+   *
    * @param sort
    */
   public set sort(sort: Sort | null) {
-    this.state.set({ sort });
+    this.actions.setSort(sort);
   }
 
   /**
@@ -585,14 +612,14 @@ export class TableDataSource<T> {
   /**
    * Refresh table:
    * - If {@link paginationStrategy$ pagination strategy} is not paginate and {@link page$ page} !== 1,
-   * {@link jumpToPage jump to page}  1 (which will trigger a refresh) and call internal
+   * {@link jumpToPage jump to page} 1 (which will trigger a refresh) and call internal
    * {@link DataSource.clearData data source clear data}. This behavior is not desired for paginate strategy in order to
    * simply refresh current page.
    * - Else if {@link page$ page} === 1 and forceRefresh === true (default = true),
    * call internal {@link DataSource.refresh data source refresh}.
    *
    * Additionally:
-   * - If {@link paginationStrategy$ pagination strategy} is scroll: Call {@link TableDataSourceActions.clearRows clear rows} action
+   * - If {@link paginationStrategy$ pagination strategy} is scroll, call {@link TableDataSourceActions.clearRows clear rows} action
    * to reset {@link rows$} accumulator back to an empty array.
    *
    * @param forceRefresh
@@ -603,13 +630,13 @@ export class TableDataSource<T> {
 
   /**
    * Reset table:
-   * - If {@link page$ page} !== 1, {@link jumpToPage jump to page}  1 (which will trigger a refresh)
+   * - If {@link page$ page} !== 1, {@link jumpToPage jump to page} 1 (which will trigger a refresh)
    * and call internal {@link DataSource.reset data source reset}.
    * - Else, call internal {@link DataSource.resetAndRefresh data source reset and refresh}.
    *
    * Additionally:
-   * - If {@link paginationStrategy$ pagination strategy} is scroll:
-   * Call {@link TableDataSourceActions.clearRows clear rows} action
+   * - If {@link paginationStrategy$ pagination strategy} is scroll,
+   * call {@link TableDataSourceActions.clearRows clear rows} action
    * to reset {@link rows$} accumulator back to an empty array.
    */
   public reset(): void {

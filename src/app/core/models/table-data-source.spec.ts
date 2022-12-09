@@ -305,7 +305,7 @@ describe('TableDataSource', () => {
     });
   });
 
-  it('should jump to page$ 1 when changing pagination strategy to scroll', () => {
+  it('should jump to page 1 when changing pagination strategy to scroll', () => {
     const unsub = '--!';
     const expectedMarbles = 'ba';
     const expectedValues = {
@@ -326,7 +326,7 @@ describe('TableDataSource', () => {
     });
   });
 
-  it('should jump to page$ 1 when changing pagination strategy to none', () => {
+  it('should jump to page 1 when changing pagination strategy to none', () => {
     const unsub = '--!';
     const expectedMarbles = 'ba';
     const expectedValues = {
@@ -372,7 +372,7 @@ describe('TableDataSource', () => {
     });
   });
 
-  it('should jump to page$ 1 when changing pagination strategy to scroll to paginate', () => {
+  it('should jump to page 1 when changing pagination strategy to scroll to paginate', () => {
     const unsub = '------!';
     const expectedMarbles = '(ba)ba';
     const expectedValues = {
@@ -483,6 +483,66 @@ describe('TableDataSource', () => {
 
     testScheduler.run(({ expectObservable, cold }: RunHelpers) => {
       expectObservable(tableDataSource.sort$, unsub).toBe(expectedMarbles, expectedValues);
+      expectObservable(cold(triggerMarbles, triggerValues).pipe(tap((fn: () => void) => fn())));
+    });
+  });
+
+  it('should call dataSource.clearData when updating sort if pagination strategy is scroll', () => {
+    const triggerMarbles = 'ab';
+    const triggerValues = {
+      a: (): void => {
+        tableDataSource.paginationStrategy = PaginationStrategy.scroll;
+      },
+      e: (): void => {
+        tableDataSource.sort = { direction: SortDirection.desc, column: 'column1' };
+      },
+    };
+
+    testScheduler.run(({ expectObservable, cold, flush }: RunHelpers) => {
+      expectObservable(cold(triggerMarbles, triggerValues).pipe(tap((fn: () => void) => fn())));
+      flush();
+      expect(dataSourceSpy.clearData).toHaveBeenCalled();
+    });
+  });
+
+  it('should not call dataSource.clearData when updating sort if pagination strategy is not scroll', () => {
+    const triggerMarbles = 'a';
+    const triggerValues = {
+      a: (): void => {
+        tableDataSource.sort = { direction: SortDirection.desc, column: 'column1' };
+      },
+    };
+
+    testScheduler.run(({ expectObservable, cold, flush }: RunHelpers) => {
+      expectObservable(cold(triggerMarbles, triggerValues).pipe(tap((fn: () => void) => fn())));
+      flush();
+      expect(dataSourceSpy.clearData).toHaveBeenCalledTimes(0);
+    });
+  });
+
+  it('should jump to page 1 when updating sort if pagination strategy is scroll', () => {
+    const unsub = '----!';
+    const expectedMarbles = 'baba';
+    const expectedValues = {
+      a: 1,
+      b: 2,
+    };
+
+    const triggerMarbles = '-cde';
+    const triggerValues = {
+      c: (): void => {
+        tableDataSource.paginationStrategy = PaginationStrategy.scroll;
+      },
+      d: (): void => {
+        tableDataSource.scroll();
+      },
+      e: (): void => {
+        tableDataSource.sort = { direction: SortDirection.desc, column: 'column1' };
+      },
+    };
+
+    testScheduler.run(({ expectObservable, cold }: RunHelpers) => {
+      expectObservable(tableDataSource.page$, unsub).toBe(expectedMarbles, expectedValues);
       expectObservable(cold(triggerMarbles, triggerValues).pipe(tap((fn: () => void) => fn())));
     });
   });
