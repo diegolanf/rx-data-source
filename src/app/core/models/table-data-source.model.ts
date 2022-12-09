@@ -467,9 +467,12 @@ export class TableDataSource<T> {
           this.dataSource.clearData();
           this.actions.jumpToPage(1);
         } else if (forceRefresh) {
+          if (paginationStrategy === PaginationStrategy.scroll) this.dataSource.clearData();
           this.dataSource.refresh();
         }
-        if (paginationStrategy === PaginationStrategy.scroll) this.actions.clearRows();
+        // Scheduled to ensure data source reset takes place beforehand
+        if (paginationStrategy === PaginationStrategy.scroll)
+          asapScheduler.schedule(() => this.actions.clearRows());
       }
     );
 
