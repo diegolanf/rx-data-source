@@ -452,24 +452,15 @@ export class TableDataSource<T> implements OnDestroy {
      */
     this.paginationState.connect(
       this.actions.setPaginationStrategy$,
-      (oldState: PaginationState, paginationStrategy: PaginationStrategy) => {
-        const scrollToPaginate: boolean =
+      (oldState: PaginationState, paginationStrategy: PaginationStrategy) => ({
+        page:
           oldState.paginationStrategy === PaginationStrategy.scroll &&
           paginationStrategy === PaginationStrategy.paginate &&
-          oldState.page !== 1;
-        if (
-          (oldState.paginationStrategy === PaginationStrategy.none &&
-            paginationStrategy === PaginationStrategy.scroll &&
-            oldState.limit === false) ||
-          scrollToPaginate
-        ) {
-          this.dataSource.clearData();
-        }
-        return {
-          page: scrollToPaginate ? 1 : oldState.page,
-          paginationStrategy,
-        };
-      }
+          oldState.page !== 1
+            ? 1
+            : oldState.page,
+        paginationStrategy,
+      })
     );
 
     /**
@@ -485,8 +476,8 @@ export class TableDataSource<T> implements OnDestroy {
     this.state.hold(
       this.refresh$.pipe(withLatestFrom(this.page$, this.paginationStrategy$)),
       ([_, page, paginationStrategy]: [void, number, PaginationStrategy]) => {
-        if (paginationStrategy === PaginationStrategy.scroll) this.actions.clearRows();
         this.dataSource.clearData();
+        if (paginationStrategy === PaginationStrategy.scroll) this.actions.clearRows();
         if (paginationStrategy !== PaginationStrategy.paginate && page !== 1) {
           this.actions.jumpToPage(1);
         } else {
@@ -525,12 +516,8 @@ export class TableDataSource<T> implements OnDestroy {
 
   /**
    * Update {@link paginationStrategy$ pagination strategy}, and:
-   * - Call {@link DataSource.clearData data source clear data} when switching from 'none' to 'scroll', and if {@link limit$ limit}
-   * is currently false; otherwise latest {@link DataSource.data$ data source data$} will be immediately added to {@link rows$ rows},
-   * causing new emission to only be appended afterwards. This behaviour is a result of {@link refresh table's refresh}
-   * not calling clear data itself, as page will always be 1 while pagination strategy is none.
-   * - Call {@link DataSource.clearData data source clear data} and {@link jumpToPage jump to page} 1 when switching
-   * from 'scroll' to 'none', and if {@link page$ page} is not 1. This is required since {@link refresh table's refresh}
+   * -  {@link jumpToPage Jump to page} 1 when switching from 'scroll' to 'none',
+   * and if {@link page$ page} is not 1. This is required since {@link refresh table's refresh}
    * will not reset page itself, if pagination strategy is 'paginate'.
    *
    * Afterwards, as effect:
@@ -610,7 +597,8 @@ export class TableDataSource<T> implements OnDestroy {
 
   /**
    * Refresh table:
-   * - Call internal {@link DataSource.clearData data source clear data}.
+   * - Call internal {@link DataSource.clearData data source clear data} to reset {@link rows$} accumulator
+   * back to an empty array.
    * - If {@link paginationStrategy$ pagination strategy} is not paginate and {@link page$ page} !== 1,
    * {@link jumpToPage jump to page} 1 (which will trigger a refresh). This behavior is not desired for paginate strategy
    * in order to simply refresh current page.
@@ -626,8 +614,8 @@ export class TableDataSource<T> implements OnDestroy {
 
   /**
    * Reset table:
-   * - If {@link page$ page} !== 1, {@link jumpToPage jump to page} 1 (which will trigger a refresh)
-   * and call internal {@link DataSource.reset data source reset}.
+   * - If {@link page$ page} !== 1, call internal {@link DataSource.reset data source reset}
+   * and {@link jumpToPage jump to page} 1 (which will trigger a refresh).
    * - Else, call internal {@link DataSource.resetAndRefresh data source reset and refresh}.
    *
    * Additionally:
