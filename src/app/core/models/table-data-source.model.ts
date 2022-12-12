@@ -534,8 +534,7 @@ export class TableDataSource<T> implements OnDestroy {
    * will not reset page itself, if pagination strategy is 'paginate'.
    *
    * Afterwards, as effect:
-   * - Trigger {@link refresh table's refresh with force refresh = false}: Force refresh is disabled to avoid table from
-   * refreshing when switching between strategies if the action is expected to return the same {@link rows$ rows}.
+   * - Trigger {@link refresh table's refresh}.
    *
    * @param paginationStrategy
    */
