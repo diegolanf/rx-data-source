@@ -13,7 +13,7 @@ export class ApiService {
     const skip = +(params.get('skip') ?? 0);
     const take = +(params.get('take') ?? this.totalRows);
     return of(generateArray((i: number) => skip + i + 1, take)).pipe(
-      delay(2000),
+      delay(1000),
       tap((r: number[]) => {
         console.info('API response:', r);
       })

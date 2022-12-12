@@ -2,7 +2,6 @@ import { HttpParams } from '@angular/common/http';
 import { TestBed } from '@angular/core/testing';
 import { DataSource } from '@app/core/models/data-source.model';
 import { PaginationStrategy, SortDirection } from '@app/core/models/table-config.model';
-import { RxState } from '@rx-angular/state';
 import { RxActionFactory } from '@rx-angular/state/actions';
 import { Observable, of, Subject, tap } from 'rxjs';
 import { RunHelpers, TestScheduler } from 'rxjs/internal/testing/TestScheduler';
@@ -55,7 +54,6 @@ describe('TableDataSource', () => {
         },
         { provide: DataSource, useValue: dataSourceSpy },
         RxActionFactory,
-        RxState,
       ],
     });
     tableDataSource = TestBed.inject(TableDataSource);
@@ -552,7 +550,16 @@ describe('TableDataSource', () => {
     const unsub = '-!';
     const expectedMarbles = 'a';
     const expectedValues = {
-      a: { skip: 30, take: 30 },
+      a: {
+        pagination: {
+          skip: 30,
+          take: 30,
+        },
+        sort: {
+          direction: SortDirection.asc,
+          column: 'defaultColumn',
+        },
+      },
     };
 
     testScheduler.run(({ expectObservable }: RunHelpers) => {
@@ -567,9 +574,36 @@ describe('TableDataSource', () => {
     const unsub = '-----!';
     const expectedMarbles = '(ab)c';
     const expectedValues = {
-      a: { skip: 30, take: 30 },
-      b: { skip: 60, take: 30 },
-      c: { skip: 300, take: 30 },
+      a: {
+        pagination: {
+          skip: 30,
+          take: 30,
+        },
+        sort: {
+          direction: SortDirection.asc,
+          column: 'defaultColumn',
+        },
+      },
+      b: {
+        pagination: {
+          skip: 60,
+          take: 30,
+        },
+        sort: {
+          direction: SortDirection.asc,
+          column: 'defaultColumn',
+        },
+      },
+      c: {
+        pagination: {
+          skip: 300,
+          take: 30,
+        },
+        sort: {
+          direction: SortDirection.asc,
+          column: 'defaultColumn',
+        },
+      },
     };
 
     const triggerMarbles = 'd---e';
@@ -595,8 +629,26 @@ describe('TableDataSource', () => {
     const unsub = '-!';
     const expectedMarbles = '(ab)';
     const expectedValues = {
-      a: { skip: 30, take: 30 },
-      b: { skip: 10, take: 10 },
+      a: {
+        pagination: {
+          skip: 30,
+          take: 30,
+        },
+        sort: {
+          direction: SortDirection.asc,
+          column: 'defaultColumn',
+        },
+      },
+      b: {
+        pagination: {
+          skip: 10,
+          take: 10,
+        },
+        sort: {
+          direction: SortDirection.asc,
+          column: 'defaultColumn',
+        },
+      },
     };
 
     const triggerMarbles = 'c';
@@ -619,10 +671,43 @@ describe('TableDataSource', () => {
     const unsub = '------!';
     const expectedMarbles = '(ab)cd';
     const expectedValues = {
-      a: { skip: 30, take: 30 },
-      b: { skip: 10, take: 10 },
-      c: undefined,
-      d: { skip: 0, take: 10 },
+      a: {
+        pagination: {
+          skip: 30,
+          take: 30,
+        },
+        sort: {
+          direction: SortDirection.asc,
+          column: 'defaultColumn',
+        },
+      },
+      b: {
+        pagination: {
+          skip: 10,
+          take: 10,
+        },
+        sort: {
+          direction: SortDirection.asc,
+          column: 'defaultColumn',
+        },
+      },
+      c: {
+        pagination: undefined,
+        sort: {
+          direction: SortDirection.asc,
+          column: 'defaultColumn',
+        },
+      },
+      d: {
+        pagination: {
+          skip: 0,
+          take: 10,
+        },
+        sort: {
+          direction: SortDirection.asc,
+          column: 'defaultColumn',
+        },
+      },
     };
 
     const triggerMarbles = 'e---fg';
@@ -635,6 +720,48 @@ describe('TableDataSource', () => {
       },
       g: (): void => {
         tableDataSource.paginationStrategy = PaginationStrategy.scroll;
+      },
+    };
+
+    testScheduler.run(({ expectObservable, cold }: RunHelpers) => {
+      expectObservable(tableDataSource.paginationParams$, unsub).toBe(
+        expectedMarbles,
+        expectedValues
+      );
+      expectObservable(cold(triggerMarbles, triggerValues).pipe(tap((fn: () => void) => fn())));
+    });
+  });
+
+  it('should update paginationParams$ when changing sort', () => {
+    const unsub = '-!';
+    const expectedMarbles = '(ab)';
+    const expectedValues = {
+      a: {
+        pagination: {
+          skip: 30,
+          take: 30,
+        },
+        sort: {
+          direction: SortDirection.asc,
+          column: 'defaultColumn',
+        },
+      },
+      b: {
+        pagination: {
+          skip: 30,
+          take: 30,
+        },
+        sort: {
+          direction: SortDirection.desc,
+          column: 'column1',
+        },
+      },
+    };
+
+    const triggerMarbles = 'c';
+    const triggerValues = {
+      c: (): void => {
+        tableDataSource.sort = { direction: SortDirection.desc, column: 'column1' };
       },
     };
 
@@ -804,7 +931,7 @@ describe('TableDataSource', () => {
   });
 
   // Refresh
-  it('should call dataSource.refresh and not jump to page 1 on refresh if pagination strategy is paginate', () => {
+  it('should call dataSource.clearData and dataSource.refresh, but not jump to page 1 on refresh if pagination strategy is paginate', () => {
     const unsub = '--!';
     const expectedMarbles = 'a-';
     const expectedValues = {
@@ -822,6 +949,7 @@ describe('TableDataSource', () => {
       expectObservable(tableDataSource.page$, unsub).toBe(expectedMarbles, expectedValues);
       expectObservable(cold(triggerMarbles, triggerValues).pipe(tap((fn: () => void) => fn())));
       flush();
+      expect(dataSourceSpy.clearData).toHaveBeenCalled();
       expect(dataSourceSpy.refresh).toHaveBeenCalled();
     });
   });
@@ -855,21 +983,33 @@ describe('TableDataSource', () => {
     });
   });
 
-  it('should call dataSource.clearData on refresh if pagination strategy is scroll', () => {
-    const triggerMarbles = 'ab';
+  it('should clear rows$ accumulator on refresh if pagination strategy is scroll', () => {
+    const unsub = '---!';
+    const expectedMarbles = 'ab(ca)';
+    const expectedValues = {
+      a: [1, 2, 3],
+      b: [1, 2, 3, 4, 5, 6],
+      c: [],
+    };
+
+    const triggerMarbles = 'def';
     const triggerValues = {
-      a: (): void => {
+      d: (): void => {
         tableDataSource.paginationStrategy = PaginationStrategy.scroll;
+        data$.next([1, 2, 3]);
       },
-      b: (): void => {
+      e: (): void => {
+        data$.next([4, 5, 6]);
+      },
+      f: (): void => {
         tableDataSource.refresh();
+        data$.next([1, 2, 3]);
       },
     };
 
-    testScheduler.run(({ expectObservable, cold, flush }: RunHelpers) => {
+    testScheduler.run(({ expectObservable, cold }: RunHelpers) => {
+      expectObservable(tableDataSource.rows$, unsub).toBe(expectedMarbles, expectedValues);
       expectObservable(cold(triggerMarbles, triggerValues).pipe(tap((fn: () => void) => fn())));
-      flush();
-      expect(dataSourceSpy.clearData).toHaveBeenCalled();
     });
   });
 
@@ -920,6 +1060,36 @@ describe('TableDataSource', () => {
       expectObservable(cold(triggerMarbles, triggerValues).pipe(tap((fn: () => void) => fn())));
       flush();
       expect(dataSourceSpy.resetAndRefresh).toHaveBeenCalled();
+    });
+  });
+
+  it('should clear rows$ accumulator on reset if pagination strategy is scroll', () => {
+    const unsub = '---!';
+    const expectedMarbles = 'ab(ca)';
+    const expectedValues = {
+      a: [1, 2, 3],
+      b: [1, 2, 3, 4, 5, 6],
+      c: [],
+    };
+
+    const triggerMarbles = 'def';
+    const triggerValues = {
+      d: (): void => {
+        tableDataSource.paginationStrategy = PaginationStrategy.scroll;
+        data$.next([1, 2, 3]);
+      },
+      e: (): void => {
+        data$.next([4, 5, 6]);
+      },
+      f: (): void => {
+        tableDataSource.reset();
+        data$.next([1, 2, 3]);
+      },
+    };
+
+    testScheduler.run(({ expectObservable, cold }: RunHelpers) => {
+      expectObservable(tableDataSource.rows$, unsub).toBe(expectedMarbles, expectedValues);
+      expectObservable(cold(triggerMarbles, triggerValues).pipe(tap((fn: () => void) => fn())));
     });
   });
 });

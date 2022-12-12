@@ -30,11 +30,11 @@ export class InfoComponent<T> implements OnInit {
     );
 
     this.skip$ = this.tableDataSource?.paginationParams$.pipe(
-      map((params: PaginationParams | undefined) => params?.skip)
+      map((params: PaginationParams) => params.pagination?.skip)
     );
 
     this.take$ = this.tableDataSource?.paginationParams$.pipe(
-      map((params: PaginationParams | undefined) => params?.take)
+      map((params: PaginationParams) => params.pagination?.take)
     );
   }
 }

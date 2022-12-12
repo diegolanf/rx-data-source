@@ -15,6 +15,9 @@ export enum PaginationStrategy {
 }
 
 export interface PaginationParams {
-  skip: number;
-  take: number;
+  pagination?: {
+    skip: number;
+    take: number;
+  };
+  sort?: Sort | null;
 }

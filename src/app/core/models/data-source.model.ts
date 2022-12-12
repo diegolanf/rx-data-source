@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Injectable, OnDestroy } from '@angular/core';
 import { indicate } from '@app/shared/operators/indicate.operator';
 import { RxState } from '@rx-angular/state';
 import { RxActionFactory } from '@rx-angular/state/actions';
@@ -99,21 +99,21 @@ interface DataSourceActions {
  * Composed of an internal {@link Interval interval} and reset {@link DataSourceActions actions}.
  */
 @Injectable()
-export class DataSource<T> {
+export class DataSource<T> implements OnDestroy {
   /**
    * Observable of {@link DataSourceState.data data state}.
    */
-  public readonly data$: Observable<T | null> = this.state.select('data');
+  public readonly data$: Observable<T | null>;
 
   /**
    * Observable of {@link DataSourceState.error error state}.
    */
-  public readonly error$: Observable<boolean> = this.state.select('error');
+  public readonly error$: Observable<boolean>;
 
   /**
    * Observable of {@link DataSourceState.initialState initial state}.
    */
-  public readonly initialState$: Observable<boolean> = this.state.select('initialState');
+  public readonly initialState$: Observable<boolean>;
 
   /**
    * Observable of {@link DataSourceState.loading loading state}.
@@ -121,7 +121,7 @@ export class DataSource<T> {
    * @see afterFirstLoading$
    * @see firstLoading$
    */
-  public readonly loading$: Observable<boolean> = this.state.select('loading');
+  public readonly loading$: Observable<boolean>;
 
   /**
    * Emits true when {@link dataSource$} observable is active,
@@ -166,16 +166,21 @@ export class DataSource<T> {
   private readonly dataSource$: Observable<T>;
 
   private readonly actions = this.factory.create();
+  private readonly state = new RxState<DataSourceState<T>>();
 
   constructor(
     private readonly factory: RxActionFactory<DataSourceActions>,
-    private readonly state: RxState<DataSourceState<T>>,
     public readonly interval: Interval
   ) {
     /**
      * Set {@link initDataSourceState initial state}.
      */
     this.state.set(initDataSourceState);
+
+    this.data$ = this.state.select('data');
+    this.error$ = this.state.select('error');
+    this.initialState$ = this.state.select('initialState');
+    this.loading$ = this.state.select('loading');
 
     this.clearData$ = this.actions.clearData$;
     this.reset$ = this.actions.reset$;
@@ -268,6 +273,10 @@ export class DataSource<T> {
    */
   public set source(dataSource: Observable<T>) {
     this.state.set({ dataSource });
+  }
+
+  ngOnDestroy(): void {
+    this.state.ngOnDestroy();
   }
 
   /**

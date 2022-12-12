@@ -1,6 +1,5 @@
 import { TestBed } from '@angular/core/testing';
 import { DataSource } from '@app/core/models/data-source.model';
-import { RxState } from '@rx-angular/state';
 import { RxActionFactory } from '@rx-angular/state/actions';
 import { defer, delay, of, Subject, tap, throwError } from 'rxjs';
 import { RunHelpers, TestScheduler } from 'rxjs/internal/testing/TestScheduler';
@@ -21,12 +20,7 @@ describe('DataSource', () => {
     });
 
     TestBed.configureTestingModule({
-      providers: [
-        DataSource,
-        { provide: Interval, useValue: intervalSpy },
-        RxActionFactory,
-        RxState,
-      ],
+      providers: [DataSource, { provide: Interval, useValue: intervalSpy }, RxActionFactory],
     });
     dataSource = TestBed.inject(DataSource);
     testScheduler = new TestScheduler((actual: unknown, expected: unknown) => {
@@ -296,14 +290,14 @@ describe('DataSource', () => {
 
   // Clear data
   it('should clear data$ observable on clearData action', () => {
-    const unsub = '--!';
-    const expectedMarbles = 'ab';
+    const unsub = '---!';
+    const expectedMarbles = 'ab-';
     const expectedValues = {
       a: 1,
       b: null,
     };
 
-    const triggerMarbles = 'cd';
+    const triggerMarbles = 'cdd';
     const triggerValues = {
       c: (): void => {
         dataSource.source = of(1);

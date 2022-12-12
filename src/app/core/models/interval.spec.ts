@@ -1,5 +1,4 @@
 import { TestBed } from '@angular/core/testing';
-import { RxState } from '@rx-angular/state';
 import { RxActionFactory } from '@rx-angular/state/actions';
 import { tap } from 'rxjs';
 import { RunHelpers, TestScheduler } from 'rxjs/internal/testing/TestScheduler';
@@ -19,7 +18,6 @@ describe('Interval', () => {
           useValue: { refreshInterval: 1 },
         },
         RxActionFactory,
-        RxState,
       ],
     });
     interval = TestBed.inject(Interval);

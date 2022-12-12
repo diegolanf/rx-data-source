@@ -7,7 +7,7 @@ import { MatDividerModule } from '@angular/material/divider';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { DataSource } from '@app/core/models/data-source.model';
-import { PaginationStrategy } from '@app/core/models/table-config.model';
+import { PaginationStrategy, SortDirection } from '@app/core/models/table-config.model';
 import { TableDataSource } from '@app/core/models/table-data-source.model';
 
 @Component({
@@ -31,6 +31,13 @@ export class ActionsComponent<T> {
   @Input() public dataSource?: DataSource<T>;
 
   public paginationStrategy = PaginationStrategy;
+
+  public setSort(sortColumn: string | null): void {
+    if (this.tableDataSource)
+      this.tableDataSource.sort = sortColumn
+        ? { column: sortColumn, direction: SortDirection.desc }
+        : null;
+  }
 
   public toggleLimit(limit: number | boolean): void {
     if (this.tableDataSource) this.tableDataSource.limit = limit;

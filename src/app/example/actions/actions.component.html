@@ -46,6 +46,15 @@
     </mat-button-toggle-group>
   </section>
   <mat-divider></mat-divider>
+  <section class="flex flex-row items-center overflow-hidden p-2.5 gap-1">
+    <div class="grow font-light mr-2">Sort:</div>
+    <mat-button-toggle-group #sort="matButtonToggleGroup" (change)="setSort(sort.value)">
+      <mat-button-toggle [value]="null">None</mat-button-toggle>
+      <mat-button-toggle [value]="'Name'">Name</mat-button-toggle>
+      <mat-button-toggle [value]="'Value'">Value</mat-button-toggle>
+    </mat-button-toggle-group>
+  </section>
+  <mat-divider></mat-divider>
   <section class="flex flex-row items-center justify-center overflow-hidden py-1 px-2.5 gap-1">
     <button mat-icon-button (click)="tableDataSource?.refresh()" matTooltip="Refresh table">
       <mat-icon>refresh</mat-icon>

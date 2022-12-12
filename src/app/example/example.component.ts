@@ -8,7 +8,6 @@ import { ApiService } from '@app/core/services/api.service';
 import { ActionsComponent } from '@app/example/actions/actions.component';
 import { InfoComponent } from '@app/example/info/info.component';
 import { ListComponent } from '@app/example/list/list.component';
-import { RxState } from '@rx-angular/state';
 import { RxActionFactory } from '@rx-angular/state/actions';
 import { Observable } from 'rxjs';
 
@@ -24,10 +23,9 @@ import { Observable } from 'rxjs';
     Interval,
     {
       provide: INTERVAL_CONFIG,
-      useValue: { refreshInterval: 20 },
+      useValue: { refreshInterval: 60 },
     },
     RxActionFactory,
-    RxState,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })

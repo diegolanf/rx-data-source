@@ -1,4 +1,4 @@
-import { Inject, Injectable, InjectionToken, Optional } from '@angular/core';
+import { Inject, Injectable, InjectionToken, OnDestroy, Optional } from '@angular/core';
 import { RxState } from '@rx-angular/state';
 import { RxActionFactory } from '@rx-angular/state/actions';
 import {
@@ -47,7 +47,7 @@ interface IntervalActions {
  * Interval class with {@link execute$} observable and {@link refresh} action.
  */
 @Injectable()
-export class Interval {
+export class Interval implements OnDestroy {
   /**
    * Combines {@link interval$} observable and {@link refresh$} action.
    * Indicates that an execution should take place.
@@ -67,11 +67,11 @@ export class Interval {
   private readonly interval$: Observable<void>;
 
   private readonly actions = this.factory.create();
+  private readonly state = new RxState<IntervalState>();
 
   constructor(
     @Optional() @Inject(INTERVAL_CONFIG) config: IntervalState | null,
-    private readonly factory: RxActionFactory<IntervalActions>,
-    private readonly state: RxState<IntervalState>
+    private readonly factory: RxActionFactory<IntervalActions>
   ) {
     /**
      * Set initial {@link IntervalState state} based on provided or {@link defaultIntervalConfig default} config.
@@ -100,6 +100,10 @@ export class Interval {
    */
   public set refreshInterval(refreshInterval: number) {
     this.state.set({ refreshInterval });
+  }
+
+  ngOnDestroy(): void {
+    this.state.ngOnDestroy();
   }
 
   /**

@@ -42,6 +42,11 @@
       </div>
       <mat-divider></mat-divider>
       <div class="flex flex-row p-2.5">
+        <span class="grow font-light mr-2">Sort:</span>
+        {{ (tableDataSource?.sort$ | push)?.column }}
+      </div>
+      <mat-divider></mat-divider>
+      <div class="flex flex-row p-2.5">
         <span class="grow font-light mr-2">Take:</span>{{ take$ | push }}
       </div>
       <mat-divider></mat-divider>
