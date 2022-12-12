@@ -165,13 +165,12 @@ export class DataSource<T> implements OnDestroy {
    */
   private readonly dataSource$: Observable<T>;
 
-  private readonly actions = this.factory.create();
+  private readonly factory = new RxActionFactory<DataSourceActions>();
   private readonly state = new RxState<DataSourceState<T>>();
 
-  constructor(
-    private readonly factory: RxActionFactory<DataSourceActions>,
-    public readonly interval: Interval
-  ) {
+  private readonly actions = this.factory.create();
+
+  constructor(public readonly interval: Interval) {
     /**
      * Set {@link initDataSourceState initial state}.
      */
@@ -276,6 +275,7 @@ export class DataSource<T> implements OnDestroy {
   }
 
   ngOnDestroy(): void {
+    this.factory.ngOnDestroy();
     this.state.ngOnDestroy();
   }
 

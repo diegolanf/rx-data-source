@@ -2,7 +2,6 @@ import { HttpParams } from '@angular/common/http';
 import { TestBed } from '@angular/core/testing';
 import { DataSource } from '@app/core/models/data-source.model';
 import { PaginationStrategy, SortDirection } from '@app/core/models/table-config.model';
-import { RxActionFactory } from '@rx-angular/state/actions';
 import { Observable, of, Subject, tap } from 'rxjs';
 import { RunHelpers, TestScheduler } from 'rxjs/internal/testing/TestScheduler';
 
@@ -53,7 +52,6 @@ describe('TableDataSource', () => {
           },
         },
         { provide: DataSource, useValue: dataSourceSpy },
-        RxActionFactory,
       ],
     });
     tableDataSource = TestBed.inject(TableDataSource);

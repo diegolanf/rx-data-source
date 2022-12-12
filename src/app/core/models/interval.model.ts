@@ -66,13 +66,12 @@ export class Interval implements OnDestroy {
    */
   private readonly interval$: Observable<void>;
 
-  private readonly actions = this.factory.create();
+  private readonly factory = new RxActionFactory<IntervalActions>();
   private readonly state = new RxState<IntervalState>();
 
-  constructor(
-    @Optional() @Inject(INTERVAL_CONFIG) config: IntervalState | null,
-    private readonly factory: RxActionFactory<IntervalActions>
-  ) {
+  private readonly actions = this.factory.create();
+
+  constructor(@Optional() @Inject(INTERVAL_CONFIG) config: IntervalState | null) {
     /**
      * Set initial {@link IntervalState state} based on provided or {@link defaultIntervalConfig default} config.
      */
@@ -103,6 +102,7 @@ export class Interval implements OnDestroy {
   }
 
   ngOnDestroy(): void {
+    this.factory.ngOnDestroy();
     this.state.ngOnDestroy();
   }
 

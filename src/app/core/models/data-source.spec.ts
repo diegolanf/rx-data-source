@@ -1,6 +1,5 @@
 import { TestBed } from '@angular/core/testing';
 import { DataSource } from '@app/core/models/data-source.model';
-import { RxActionFactory } from '@rx-angular/state/actions';
 import { defer, delay, of, Subject, tap, throwError } from 'rxjs';
 import { RunHelpers, TestScheduler } from 'rxjs/internal/testing/TestScheduler';
 
@@ -20,7 +19,7 @@ describe('DataSource', () => {
     });
 
     TestBed.configureTestingModule({
-      providers: [DataSource, { provide: Interval, useValue: intervalSpy }, RxActionFactory],
+      providers: [DataSource, { provide: Interval, useValue: intervalSpy }],
     });
     dataSource = TestBed.inject(DataSource);
     testScheduler = new TestScheduler((actual: unknown, expected: unknown) => {

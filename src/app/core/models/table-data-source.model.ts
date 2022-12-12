@@ -235,13 +235,14 @@ export class TableDataSource<T> implements OnDestroy {
    */
   private readonly fallbackLimit: number = 10;
 
-  private readonly actions = this.factory.create();
+  private readonly factory = new RxActionFactory<TableDataSourceActions<T>>();
   private readonly paginationState = new RxState<PaginationState>();
   private readonly state = new RxState<TableDataSourceState<T>>();
 
+  private readonly actions = this.factory.create();
+
   constructor(
     @Optional() @Inject(TABLE_DATA_SOURCE_CONFIG) config: Partial<PaginationState> | null,
-    private readonly factory: RxActionFactory<TableDataSourceActions<T>>,
     public readonly dataSource: DataSource<T[]>
   ) {
     /**
@@ -554,6 +555,7 @@ export class TableDataSource<T> implements OnDestroy {
   }
 
   ngOnDestroy(): void {
+    this.factory.ngOnDestroy();
     this.paginationState.ngOnDestroy();
     this.state.ngOnDestroy();
   }
