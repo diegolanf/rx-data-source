@@ -187,7 +187,10 @@ export class DataSource<T> implements OnDestroy {
     this.initialState$ = this.state.select('initialState');
     this.loading$ = this.state.select('loading');
 
-    this.hasError$ = this.error$.pipe(map((error: HttpErrorResponse | null) => error !== null));
+    this.hasError$ = this.error$.pipe(
+      map((error: HttpErrorResponse | null) => error !== null),
+      distinctUntilChanged()
+    );
 
     this.clearData$ = this.actions.clearData$;
     this.reset$ = this.actions.reset$;
