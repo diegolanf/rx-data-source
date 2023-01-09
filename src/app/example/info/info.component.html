@@ -4,7 +4,7 @@
     <div class="font-semilight pb-2">Data source</div>
     <mat-card>
       <div class="flex flex-row p-2.5">
-        <span class="grow font-light mr-2">Error:</span>{{ dataSource?.error$ | push }}
+        <span class="grow font-light mr-2">Error:</span>{{ dataSource?.hasError$ | push }}
       </div>
       <mat-divider></mat-divider>
       <div class="flex flex-row p-2.5">

@@ -236,7 +236,7 @@ describe('DataSource', () => {
   });
 
   // Error observable tests
-  it('should emit true on error$ observable if source throws an error', () => {
+  it('should emit true on hasError$ observable if source throws an error', () => {
     const unsub = '-!';
     const expectedMarbles = '(ab)';
     const expectedValues = {
@@ -252,12 +252,12 @@ describe('DataSource', () => {
     };
 
     testScheduler.run(({ expectObservable, cold }: RunHelpers) => {
-      expectObservable(dataSource.error$, unsub).toBe(expectedMarbles, expectedValues);
+      expectObservable(dataSource.hasError$, unsub).toBe(expectedMarbles, expectedValues);
       expectObservable(cold(triggerMarbles, triggerValues).pipe(tap((fn: () => void) => fn())));
     });
   });
 
-  it('should emit false on error$ observable every time source completes without error', () => {
+  it('should emit false on hasError$ observable every time source completes without error', () => {
     const unsub = '---!';
     const expectedMarbles = 'aba';
     const expectedValues = {
@@ -276,7 +276,7 @@ describe('DataSource', () => {
     };
 
     testScheduler.run(({ expectObservable, cold }: RunHelpers) => {
-      expectObservable(dataSource.error$, unsub).toBe(expectedMarbles, expectedValues);
+      expectObservable(dataSource.hasError$, unsub).toBe(expectedMarbles, expectedValues);
       expectObservable(cold(triggerMarbles, triggerValues).pipe(tap((fn: () => void) => fn())));
     });
   });

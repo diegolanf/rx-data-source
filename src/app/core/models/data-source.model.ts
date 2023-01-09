@@ -1,3 +1,4 @@
+import { HttpErrorResponse } from '@angular/common/http';
 import { Injectable, OnDestroy } from '@angular/core';
 import { indicate } from '@app/shared/operators/indicate.operator';
 import { RxState } from '@rx-angular/state';
@@ -31,10 +32,10 @@ export interface DataSourceState<T> {
   dataSource: Observable<T>;
 
   /**
-   * Indicates error state.
-   * - Set as true if {@link dataSource} observable throws an error.
+   * Error state.
+   * - Set to {@link HttpErrorResponse} if {@link dataSource} observable throws an error.
    */
-  error: boolean;
+  error: HttpErrorResponse | null;
 
   /**
    * Indicates initial state.
@@ -58,7 +59,7 @@ export interface DataSourceState<T> {
 // eslint-disable-next-line  @typescript-eslint/no-explicit-any
 const initDataSourceState: Partial<DataSourceState<any>> = {
   loading: false,
-  error: false,
+  error: null,
   initialState: true,
 };
 
@@ -108,7 +109,12 @@ export class DataSource<T> implements OnDestroy {
   /**
    * Observable of {@link DataSourceState.error error state}.
    */
-  public readonly error$: Observable<boolean>;
+  public readonly error$: Observable<HttpErrorResponse | null>;
+
+  /**
+   * Returns true if data source's {@link error$ error state} is defined.
+   */
+  public readonly hasError$: Observable<boolean>;
 
   /**
    * Observable of {@link DataSourceState.initialState initial state}.
@@ -181,6 +187,8 @@ export class DataSource<T> implements OnDestroy {
     this.initialState$ = this.state.select('initialState');
     this.loading$ = this.state.select('loading');
 
+    this.hasError$ = this.error$.pipe(map((error: HttpErrorResponse | null) => error !== null));
+
     this.clearData$ = this.actions.clearData$;
     this.reset$ = this.actions.reset$;
     this.resetAndRefresh$ = this.actions.resetAndRefresh$;
@@ -206,12 +214,12 @@ export class DataSource<T> implements OnDestroy {
         dataSource.pipe(
           indicate(this.state), // Set loading in state to true while dataSource is active
           takeUntil(this.interval.execute$), // Stop if new execution takes place
-          catchError(() => {
-            this.state.set({ error: true, initialState: false });
+          catchError((error: HttpErrorResponse) => {
+            this.state.set({ error, initialState: false });
             return EMPTY;
           }),
           map((response: T) => {
-            this.state.set({ error: false, initialState: false });
+            this.state.set({ error: null, initialState: false });
             return response;
           })
         )
